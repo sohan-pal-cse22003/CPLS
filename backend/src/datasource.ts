@@ -10,9 +10,9 @@ const isDev = process.env.NODE_ENV === 'development';
 
 export const dataSourceOptions: DataSourceOptions = {
   type: 'postgres',
-  host: 'db.katlctzngddikpmrmxyv.supabase.co',
+  host: 'aws-1-ap-southeast-2.pooler.supabase.com',
   port: 5432,
-  username: 'postgres',
+  username: 'postgres.katlctzngddikpmrmxyv',
   password: 'sohanpal@1235',
   database: 'postgres',
   ssl: {
