@@ -1,10 +1,10 @@
-const BASE_URL = 'http://localhost:3000'; // Global base URL constant
+const BASE_URL = 'https://cpls.onrender.com'; // Global base URL constant
 
 class APIDatabase {
   constructor() {
     this.categoriesCache = {};
     // Prefetch categories to populate cache for synchronous callers
-    this.getCategories().catch(() => {});
+    this.getCategories().catch(() => { });
   }
 
   // Helpers
@@ -36,7 +36,7 @@ class APIDatabase {
     if (options.body && typeof options.body === 'object') {
       options.body = JSON.stringify(options.body);
     }
-    
+
     const res = await fetch(`${BASE_URL}${path}`, options);
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));
@@ -51,7 +51,7 @@ class APIDatabase {
       method: 'POST',
       body: { email, password }
     });
-    
+
     if (res.success) {
       sessionStorage.setItem('ua_token', res.accessToken);
       sessionStorage.setItem('ua_current_user', JSON.stringify(res.user));
@@ -64,14 +64,14 @@ class APIDatabase {
       method: 'POST',
       body: { email, name, password, role, services }
     });
-    
+
     // Automatically log in if Consumer
     if (role === 'consumer') {
       // Login automatically by requesting token
       const loginRes = await this.login(email, password);
       return loginRes;
     }
-    
+
     return { success: true, user: res };
   }
 
