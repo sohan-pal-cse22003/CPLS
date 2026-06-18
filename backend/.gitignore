@@ -1,0 +1,83 @@
+# ==============================================================================
+# 1. SECURITY & SENSITIVE DATA (Crucial to prevent leaks)
+# ==============================================================================
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+certs/
+secrets.json
+
+# ==============================================================================
+# 2. SYSTEM & TEXT EDITOR OVERHEAD (Personal machine files)
+# ==============================================================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# Visual Studio Code
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# IntelliJ / PyCharm / WebStorm
+.idea/
+*.iws
+*.iml
+
+# ==============================================================================
+# 3. DEPENDENCIES & PACKAGE MANAGERS (Easily rebuilt via configs)
+# ==============================================================================
+# Node / JavaScript
+node_modules/
+jspm_packages/
+
+# Python
+venv/
+.venv/
+env/
+ENV/
+pyvenv.cfg
+
+# PHP
+vendor/
+
+# Ruby
+.bundle/
+vendor/bundle/
+
+# ==============================================================================
+# 4. BUILD ARTIFACTS & PACKAGES (Generated outputs)
+# ==============================================================================
+dist/
+build/
+out/
+target/
+bin/
+obj/
+*.exe
+*.dll
+*.so
+*.war
+*.ear
+
+# ==============================================================================
+# 5. LOGS & DIAGNOSTICS
+# ==============================================================================
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.logs/
+crash_dumps/

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CPLS | Available Professionals</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/datepicker.css">
+</head>
+
+<body>
+
+  <!-- Breadcrumbs & Page Header -->
+  <section class="providers-header-section" style="padding: 40px 0 25px 0; background-color: var(--white); border-bottom: 1px solid var(--border); margin-bottom: 40px;">
+    <div class="container">
+      <nav class="breadcrumbs" style="font-size: 14px; margin-bottom: 15px; color: var(--text-muted);">
+        <a href="index.html" style="color: var(--primary); font-weight: 500; transition: var(--transition);">Home</a> 
+        <span style="margin: 0 8px;">/</span> 
+        <span id="breadcrumb-category" style="color: var(--text-muted); font-weight: 500;">Services</span> 
+        <span style="margin: 0 8px;">/</span> 
+        <span id="breadcrumb-subcat" style="color: var(--dark); font-weight: 600;">Service Provider</span>
+      </nav>
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 20px;">
+        <div>
+          <h1 id="page-service-title" style="font-size: 32px; margin-bottom: 8px;">Available Professionals</h1>
+          <p id="page-service-desc" style="color: var(--text-muted); font-size: 15px; max-width: 600px;">Choose from our top-rated partners. Securely book and pay after service delivery.</p>
+        </div>
+        
+        <!-- Sorting Controls -->
+        <div style="display: flex; align-items: center; gap: 10px; background: var(--light); padding: 8px 16px; border-radius: var(--radius-md); border: 1px solid var(--border);">
+          <label for="providers-sort" style="font-size: 14px; font-weight: 600; color: var(--dark); white-space: nowrap;">Sort by:</label>
+          <select id="providers-sort" class="form-control" style="width: 180px; padding: 6px 12px; font-size: 14px; height: auto; margin: 0; background: var(--white); border-color: var(--border);">
+            <option value="rating">Highest Rating</option>
+            <option value="price-asc">Price: Low to High</option>
+            <option value="price-desc">Price: High to Low</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Providers List Content Section -->
+  <main class="container" style="margin-bottom: 80px; flex: 1;">
+    <div id="providers-container">
+      <!-- Loading state -->
+      <div id="providers-loading" style="text-align: center; padding: 60px 0;">
+        <i class="fas fa-spinner fa-spin" style="font-size: 40px; color: var(--primary); margin-bottom: 15px;"></i>
+        <p style="color: var(--text-muted);">Finding the best professionals for you...</p>
+      </div>
+      
+      <!-- Providers Grid Wrapper -->
+      <div id="providers-list-wrapper" class="providers-grid" style="display: none;">
+        <!-- Dynamically filled by js/providers.js -->
+      </div>
+
+      <!-- Empty State -->
+      <div id="providers-empty-state" style="display: none; text-align: center; background: var(--white); border: 1px dashed var(--border); padding: 60px 20px; border-radius: var(--radius-lg); max-width: 600px; margin: 0 auto;">
+        <div style="background-color: rgba(249, 115, 22, 0.1); width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; font-size: 36px; color: var(--secondary);">
+          <i class="fas fa-user-slash"></i>
+        </div>
+        <h3 style="font-size: 22px; margin-bottom: 10px;">No Professionals Online</h3>
+        <p style="color: var(--text-muted); font-size: 15px; margin-bottom: 25px;">There are currently no active service providers online for <strong id="empty-service-name">this service</strong>. Please try again later or browse other services.</p>
+        <a href="index.html" class="btn btn-primary">Go to Homepage</a>
+      </div>
+    </div>
+  </main>
+
+  <!-- Booking Details Modal -->
+  <div class="modal-overlay" id="booking-modal">
+    <div class="modal-container" style="max-width: 550px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Complete Your Booking</h3>
+        <button class="modal-close" onclick="closeModal('booking-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="booking-form">
+          <input type="hidden" id="booking-category">
+          <input type="hidden" id="booking-subcat-id">
+          <input type="hidden" id="booking-provider-id">
+          <input type="hidden" id="booking-price">
+
+          <div class="form-group">
+            <label class="form-label">Selected Service & Expert</label>
+            <p id="booking-service-summary" style="font-weight: 600; color: var(--primary); background: rgba(79, 70, 229, 0.05); padding: 15px; border-radius: var(--radius-md); border: 1px solid rgba(79, 70, 229, 0.1); line-height: 1.5;">
+            </p>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Preferred Date</label>
+              <!-- Custom date picker injected by JS into this wrapper -->
+              <div id="booking-date-picker"></div>
+            </div>
+            <div class="form-group">
+              <label for="booking-time" class="form-label">Preferred Time Slot</label>
+              <select id="booking-time" class="form-control" required>
+                <option value="">Select Time Slot</option>
+                <option value="09:00 AM">09:00 AM – 11:00 AM</option>
+                <option value="11:00 AM">11:00 AM – 01:00 PM</option>
+                <option value="01:00 PM">01:00 PM – 03:00 PM</option>
+                <option value="03:00 PM">03:00 PM – 05:00 PM</option>
+                <option value="05:00 PM">05:00 PM – 07:00 PM</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="booking-address" class="form-label">Service Address</label>
+            <textarea id="booking-address" class="form-control" rows="3" placeholder="Enter your full street address, flat/house number, landmark, and city..." required></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px; padding: 12px;">Confirm Booking</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shared Utilities (Toast + DatePicker) -->
+  <script src="js/ui.js"></script>
+  <!-- Shared API Logic -->
+  <script src="js/api.js"></script>
+  <!-- Page Specific Logic -->
+  <script src="js/providers.js"></script>
+</body>
+
+</html>

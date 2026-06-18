@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CPLS | Partner Dashboard</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/datepicker.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+
+  <!-- Pending Approval Screen (Shown if provider is not approved) -->
+  <div class="auth-wrapper" id="approval-screen" style="display: none; height: 100vh;">
+    <div class="auth-card" style="text-align: center; max-width: 500px;">
+      <i class="fas fa-user-shield"
+        style="font-size: 64px; color: var(--warning); margin-bottom: 20px; display: block;"></i>
+      <h2>Account Under Review</h2>
+      <p style="color: var(--text-muted); margin-top: 10px; margin-bottom: 25px;">
+        Thank you for registering as a partner on CPLS! Our administrators are currently reviewing your
+        qualifications and service expertise.
+      </p>
+      <div
+        style="background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.1); padding: 15px; border-radius: var(--radius-md); text-align: left; margin-bottom: 25px; font-size: 13px;">
+        <strong>Application Details:</strong>
+        <div style="margin-top: 5px;"><strong>Name:</strong> <span id="app-name">Rahul</span></div>
+        <div><strong>Expertise:</strong> <span id="app-category">Plumbing</span></div>
+        <div><strong>Status:</strong> <span class="badge badge-pending">Awaiting Review</span></div>
+      </div>
+      <button class="btn btn-outline" style="width: 100%;" onclick="window.db.logout()">Log Out</button>
+    </div>
+  </div>
+
+  <!-- Dashboard Container (Shown if provider is approved) -->
+  <div class="dashboard-container" id="dashboard-wrapper" style="display: none;">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div>
+        <a href="" class="logo" style="margin-bottom: 30px; display: inline-flex;">
+          <i class="fas fa-tools" style="color: var(--primary);"></i> CPLS
+        </a>
+
+        <div class="sidebar-menu">
+          <a href="#" class="sidebar-link active" id="menu-jobs" onclick="switchPanel('jobs')">
+            <i class="fas fa-briefcase"></i> Jobs Board
+          </a>
+          <a href="#" class="sidebar-link" id="menu-services" onclick="switchPanel('services')">
+            <i class="fas fa-tools"></i> My Services
+          </a>
+
+          <div
+            style="padding: 15px; border-radius: var(--radius-md); background: var(--light); border: 1px solid var(--border); margin: 20px 0;">
+            <label class="form-checkbox">
+              <input type="checkbox" id="provider-online-toggle" style="width: 16px; height: 16px;">
+              <span style="font-size: 14px; font-weight: 600;">Go Online</span>
+            </label>
+            <span style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 4px;"
+              id="online-status-lbl">
+              Offline - You won't receive new bookings
+            </span>
+          </div>
+
+          <a href="#" class="sidebar-link" onclick="window.db.logout()">
+            <i class="fas fa-sign-out-alt"></i> Log Out
+          </a>
+        </div>
+      </div>
+
+      <div class="sidebar-user">
+        <div class="user-avatar" id="sidebar-avatar">P</div>
+        <div class="user-info">
+          <h4 id="sidebar-name">Provider Name</h4>
+          <p id="sidebar-expert">Plumbing Pro</p>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Workspace Content -->
+    <main class="dashboard-content">
+      <div class="dashboard-header">
+        <div>
+          <h1 id="welcome-message">Welcome Back, Partner!</h1>
+          <p style="color: var(--text-muted); font-size: 14px;">Manage your jobs, respond to clients, and review your
+            statistics.</p>
+        </div>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-details">
+            <h3 id="stat-rating">0.0</h3>
+            <p>Average Rating</p>
+          </div>
+          <div class="stat-icon warning">
+            <i class="fas fa-star"></i>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-details">
+            <h3 id="stat-completed">0</h3>
+            <p>Completed Jobs</p>
+          </div>
+          <div class="stat-icon success">
+            <i class="fas fa-check-double"></i>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-details">
+            <h3 id="stat-earnings">₹0</h3>
+            <p>Total Earnings</p>
+          </div>
+          <div class="stat-icon info">
+            <i class="fas fa-wallet"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL: JOBS BOARD -->
+      <div id="panel-jobs">
+        <!-- Job Status Tabs -->
+        <div style="border-bottom: 2px solid var(--border); display: flex; gap: 20px; margin-bottom: 25px;">
+          <h3 id="tab-requests"
+            style="padding-bottom: 12px; cursor: pointer; color: var(--primary); border-bottom: 2px solid var(--primary); font-size: 16px;">
+            New Requests</h3>
+          <h3 id="tab-active"
+            style="padding-bottom: 12px; cursor: pointer; color: var(--text-muted); border-bottom: 2px solid transparent; font-size: 16px;">
+            Active Tasks</h3>
+          <h3 id="tab-history"
+            style="padding-bottom: 12px; cursor: pointer; color: var(--text-muted); border-bottom: 2px solid transparent; font-size: 16px;">
+            Job History</h3>
+        </div>
+
+        <!-- Jobs Grid -->
+        <div class="booking-grid" id="jobs-wrapper">
+          <!-- Injected Dynamically by JS -->
+        </div>
+      </div>
+
+      <!-- PANEL: MY SERVICES -->
+      <div id="panel-services" style="display: none;">
+        <div
+          style="background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 30px; box-shadow: var(--shadow-sm); margin-bottom: 40px;">
+          <h3 style="margin-bottom: 10px; font-size: 20px;">Manage Services You Provide</h3>
+          <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">
+            Check the individual services you are qualified to provide. You will automatically receive booking requests
+            for these services when online.
+          </p>
+          <form id="my-services-form">
+            <div id="provider-services-checklist"
+              style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 25px;">
+              <!-- Injected dynamically by provider.js -->
+            </div>
+            <button type="submit" class="btn btn-primary">Save Services Configuration</button>
+          </form>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- OTP Verification Modal -->
+  <div class="modal-overlay" id="otp-modal">
+    <div class="modal-container" style="max-width: 400px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Enter Customer OTP</h3>
+        <button class="modal-close" onclick="closeModal('otp-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="otp-form">
+          <input type="hidden" id="otp-booking-id">
+
+          <div style="text-align: center; margin-bottom: 20px;">
+            <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 15px;">
+              Please ask the customer for the 4-digit OTP shown on their active booking card to start this service.
+            </p>
+            <div class="form-group" style="max-width: 200px; margin: 0 auto 15px auto;">
+              <input type="text" id="entered-otp" class="form-control" placeholder="e.g. 1234" maxlength="4"
+                style="text-align: center; font-size: 24px; font-weight: 700; letter-spacing: 4px; padding: 10px;"
+                required>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%;">Verify & Start Service</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/ui.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/provider.js"></script>
+</body>
+
+</html>

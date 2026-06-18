@@ -1,0 +1,351 @@
+const BASE_URL = 'http://localhost:3000'; // Global base URL constant
+
+class APIDatabase {
+  constructor() {
+    this.categoriesCache = {};
+    // Prefetch categories to populate cache for synchronous callers
+    this.getCategories().catch(() => {});
+  }
+
+  // Helpers
+  getData(key) {
+    if (key === 'ua_categories') {
+      return this.categoriesCache || {};
+    }
+    return null;
+  }
+
+  // Helper to construct headers with JWT token
+  getHeaders() {
+    const headers = {
+      'Content-Type': 'application/json'
+    };
+    const token = sessionStorage.getItem('ua_token');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    return headers;
+  }
+
+  // Network handler wrapper to simplify requests
+  async request(path, options = {}) {
+    options.headers = {
+      ...this.getHeaders(),
+      ...options.headers
+    };
+    if (options.body && typeof options.body === 'object') {
+      options.body = JSON.stringify(options.body);
+    }
+    
+    const res = await fetch(`${BASE_URL}${path}`, options);
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.message || `Request failed with status ${res.status}`);
+    }
+    return res.json();
+  }
+
+  // AUTH API
+  async login(email, password) {
+    const res = await this.request('/auth/login', {
+      method: 'POST',
+      body: { email, password }
+    });
+    
+    if (res.success) {
+      sessionStorage.setItem('ua_token', res.accessToken);
+      sessionStorage.setItem('ua_current_user', JSON.stringify(res.user));
+    }
+    return res;
+  }
+
+  async register(email, name, password, role, services = []) {
+    const res = await this.request('/auth/register', {
+      method: 'POST',
+      body: { email, name, password, role, services }
+    });
+    
+    // Automatically log in if Consumer
+    if (role === 'consumer') {
+      // Login automatically by requesting token
+      const loginRes = await this.login(email, password);
+      return loginRes;
+    }
+    
+    return { success: true, user: res };
+  }
+
+  getCurrentUser() {
+    const sessionUser = JSON.parse(sessionStorage.getItem('ua_current_user'));
+    return sessionUser;
+  }
+
+  logout() {
+    sessionStorage.removeItem('ua_token');
+    sessionStorage.removeItem('ua_current_user');
+    window.location.href = 'index.html';
+  }
+
+  // CATEGORIES & SERVICES API
+  async getCategories() {
+    const list = await this.request('/categories');
+    // Transform array into object keyed by category ID to match frontend expectation
+    const categoriesObj = {};
+    list.forEach(cat => {
+      categoriesObj[cat.id] = cat;
+    });
+    this.categoriesCache = categoriesObj;
+    return categoriesObj;
+  }
+
+  async addCategory(id, name, icon, description) {
+    return this.request('/categories', {
+      method: 'POST',
+      body: { id, name, icon, description }
+    });
+  }
+
+  async addSubcategory(categoryId, subcatName, price, time, description) {
+    return this.request(`/categories/${categoryId}/subcategories`, {
+      method: 'POST',
+      body: { name: subcatName, price, time, description }
+    });
+  }
+
+  // SEARCH AND AUTO-SUGGESTIONS API
+  async getSearchSuggestions(query) {
+    return this.request(`/categories/suggestions?query=${encodeURIComponent(query)}`);
+  }
+
+  // BOOKINGS API
+  async getBookings() {
+    return this.request('/bookings');
+  }
+
+  async getProvidersForService(subcatId) {
+    return this.request(`/listings/providers?subcatId=${subcatId}`);
+  }
+
+  async createBooking(category, subcategoryId, providerId, price, date, time, address) {
+    return this.request('/bookings', {
+      method: 'POST',
+      body: { category, subcategoryId, providerId, price, date, time, address }
+    });
+  }
+
+  async getProviderBookedSlots(providerId, date) {
+    return this.request(`/bookings/slots?providerId=${providerId}&date=${date}`);
+  }
+
+  async updateBookingStatus(bookingId, status, enteredOtp = '') {
+    return this.request(`/bookings/${bookingId}/status`, {
+      method: 'PATCH',
+      body: { status, enteredOtp }
+    });
+  }
+
+  async rateBooking(bookingId, rating, comment) {
+    return this.request(`/bookings/${bookingId}/rate`, {
+      method: 'POST',
+      body: { rating, comment }
+    });
+  }
+
+  // ADMIN OPERATIONS API
+  async getAdminStats() {
+    return this.request('/admin/stats');
+  }
+
+  async toggleProviderApproval(providerId) {
+    return this.request(`/admin/providers/${providerId}/approve`, {
+      method: 'PATCH'
+    });
+  }
+
+  async toggleProviderStatus(providerId) {
+    const res = await this.request('/listings/me/status', {
+      method: 'PATCH'
+    });
+    // Update stored session user's online status
+    const user = this.getCurrentUser();
+    if (user && user.id === providerId) {
+      user.online = res.online;
+      sessionStorage.setItem('ua_current_user', JSON.stringify(user));
+    }
+    return res;
+  }
+
+  async toggleUserBlock(userId) {
+    return this.request(`/admin/users/${userId}/block`, {
+      method: 'PATCH'
+    });
+  }
+
+  async updateProviderServices(providerId, services) {
+    const res = await this.request('/listings/me/catalog', {
+      method: 'PATCH',
+      body: { services }
+    });
+    // Update stored session user's listings/services catalog
+    const user = this.getCurrentUser();
+    if (user && user.id === providerId) {
+      user.services = res.listings ? res.listings.map(l => ({ id: l.subcat_id, price: Number(l.price) })) : [];
+      sessionStorage.setItem('ua_current_user', JSON.stringify(user));
+    }
+    return user;
+  }
+
+  async getUsersList() {
+    return this.request('/admin/users');
+  }
+}
+
+// Instantiate db global variable
+window.db = new APIDatabase();
+
+
+// --- LAYOUT RENDERING UTILITY (UrbanClap Styling) ---
+window.renderLayout = function (activeLink = '') {
+  const currentUser = window.db.getCurrentUser();
+  const isLoggedIn = !!currentUser;
+
+  // 1. DYNAMIC HEADER
+  const headerHtml = `
+    <div class="container">
+      <nav class="navbar">
+        <a href="index.html" class="logo">
+          <i class="fas fa-tools" style="color: var(--primary);"></i> CPLS
+        </a>
+        
+        <ul class="nav-menu">
+          <li><a href="index.html" class="nav-link ${activeLink === 'home' ? 'active' : ''}">Home</a></li>
+          ${isLoggedIn && currentUser.role === 'consumer'
+      ? `<li><a href="customer-dashboard.html" class="nav-link ${activeLink === 'bookings' ? 'active' : ''}">My Bookings</a></li>`
+      : ''
+    }
+          ${isLoggedIn && currentUser.role === 'provider'
+      ? `<li><a href="provider-dashboard.html" class="nav-link ${activeLink === 'bookings' ? 'active' : ''}">Jobs Board</a></li>`
+      : ''
+    }
+          ${isLoggedIn && currentUser.role === 'admin'
+      ? `<li><a href="admin-dashboard.html" class="nav-link ${activeLink === 'admin' ? 'active' : ''}">Admin Control</a></li>`
+      : ''
+    }
+        </ul>
+
+        <div class="nav-buttons">
+          ${isLoggedIn
+      ? `
+              <div class="sidebar-user" style="padding: 0; border: none; cursor: pointer;" onclick="toggleUserDropdown()">
+                <div class="user-avatar">${currentUser.name.charAt(0).toUpperCase()}</div>
+                <div class="user-info" style="display: none; position: absolute; top: 65px; right: 20px; background: white; border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); padding: 15px; z-index: 150;" id="user-dropdown">
+                  <h4 style="margin-bottom: 5px;">${currentUser.name}</h4>
+                  <p style="text-transform: capitalize; margin-bottom: 12px; font-size:12px;">Role: ${currentUser.role}</p>
+                  <button class="btn btn-outline btn-sm btn-danger" onclick="window.db.logout()" style="width: 100%;">Logout</button>
+                </div>
+              </div>
+              `
+      : `
+              <a href="login.html" class="btn btn-outline">Sign In</a>
+              <a href="login.html?register=true" class="btn btn-primary">Become a Pro</a>
+              `
+    }
+        </div>
+      </nav>
+    </div>
+  `;
+
+  const headerElem = document.createElement('header');
+  headerElem.innerHTML = headerHtml;
+  document.body.insertBefore(headerElem, document.body.firstChild);
+
+  // Add event listener for header scrolling
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 20) {
+      headerElem.classList.add('scrolled');
+    } else {
+      headerElem.classList.remove('scrolled');
+    }
+  });
+
+  // Toggle profile dropdown
+  window.toggleUserDropdown = function () {
+    const dropdown = document.getElementById('user-dropdown');
+    if (dropdown) {
+      const isVisible = dropdown.style.display === 'block';
+      dropdown.style.display = isVisible ? 'none' : 'block';
+    }
+  };
+
+  // Close dropdown on click outside
+  window.addEventListener('click', (e) => {
+    const userAvatar = document.querySelector('.user-avatar');
+    const dropdown = document.getElementById('user-dropdown');
+    if (dropdown && !userAvatar.contains(e.target) && !dropdown.contains(e.target)) {
+      dropdown.style.display = 'none';
+    }
+  });
+
+  // 2. DYNAMIC FOOTER (UrbanClap style)
+  const footerHtml = `
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <a href="index.html" class="logo" style="color: var(--white); margin-bottom: 20px; display: inline-flex;">
+            <i class="fas fa-tools" style="color: var(--primary);"></i> CPLS
+          </a>
+          <p>Your one-stop solution for local services. From plumbing to saloon treatments at home, we deliver quality and trust.</p>
+          <div class="social-links">
+            <a href="#"><i class="fab fa-facebook-f"></i></a>
+            <a href="#"><i class="fab fa-twitter"></i></a>
+            <a href="#"><i class="fab fa-instagram"></i></a>
+            <a href="#"><i class="fab fa-linkedin-in"></i></a>
+          </div>
+        </div>
+        <div class="footer-col">
+          <h3>For Customers</h3>
+          <ul>
+            <li><a href="index.html">Categories</a></li>
+            <li><a href="index.html">Search Services</a></li>
+            <li><a href="customer-dashboard.html">Booking History</a></li>
+            <li><a href="#">Help & Support</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h3>For Partners</h3>
+          <ul>
+            <li><a href="login.html?register=true">Register as Partner</a></li>
+            <li><a href="provider-dashboard.html">Job Feed</a></li>
+            <li><a href="#">Partner Support</a></li>
+            <li><a href="#">Insurance Coverage</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h3>Contact Us</h3>
+          <ul>
+            <li><i class="fas fa-envelope"></i> info@cpls.com</li>
+            <li><i class="fas fa-phone"></i> +91 98765 43210</li>
+            <li><i class="fas fa-map-marker-alt"></i> Connaught Place, New Delhi, India</li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 CPLS. All rights reserved. B.Tech CS Final Year Project Demo.</p>
+        <p>Created by CS Student</p>
+      </div>
+    </div>
+  `;
+
+  const footerElem = document.createElement('footer');
+  footerElem.innerHTML = footerHtml;
+  document.body.appendChild(footerElem);
+
+  // Inject Font Awesome dynamically
+  if (!document.getElementById('font-awesome-css')) {
+    const fa = document.createElement('link');
+    fa.id = 'font-awesome-css';
+    fa.rel = 'stylesheet';
+    fa.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css';
+    document.head.appendChild(fa);
+  }
+};

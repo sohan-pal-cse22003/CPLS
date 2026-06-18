@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CPLS | Admin Control Center</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/datepicker.css">
+  <style>
+    /* Admin specific helper styles */
+    .admin-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 40px;
+    }
+
+    .admin-table th,
+    .admin-table td {
+      padding: 15px 20px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+
+    .admin-table th {
+      background-color: var(--light);
+      font-weight: 700;
+      color: var(--dark);
+      font-family: 'Outfit', sans-serif;
+    }
+
+    .admin-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .admin-table tr:hover {
+      background-color: rgba(79, 70, 229, 0.01);
+    }
+
+    .admin-badge {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: var(--radius-full);
+      font-weight: 600;
+      text-transform: capitalize;
+    }
+
+    .panel-section {
+      background-color: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 30px;
+      margin-bottom: 40px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .category-item-admin {
+      padding: 15px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      margin-bottom: 15px;
+      background: var(--light);
+    }
+
+    .category-header-admin {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Admin Dashboard Container -->
+  <div class="dashboard-container">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div>
+        <a href="index.html" class="logo" style="margin-bottom: 30px; display: inline-flex;">
+          <i class="fas fa-tools" style="color: var(--primary);"></i> CPLS
+        </a>
+        <div class="sidebar-menu">
+          <a href="#" class="sidebar-link active" id="menu-users" onclick="switchPanel('users')">
+            <i class="fas fa-users-cog"></i> Users Directory
+          </a>
+          <a href="#" class="sidebar-link" id="menu-categories" onclick="switchPanel('categories')">
+            <i class="fas fa-cubes"></i> Service Categories
+          </a>
+          <a href="#" class="sidebar-link" onclick="window.db.logout()">
+            <i class="fas fa-sign-out-alt"></i> Log Out
+          </a>
+        </div>
+      </div>
+
+      <div class="sidebar-user">
+        <div class="user-avatar" id="sidebar-avatar" style="background-color: var(--secondary);">A</div>
+        <div class="user-info">
+          <h4 id="sidebar-name">Admin Name</h4>
+          <p>System Administrator</p>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Workspace Content -->
+    <main class="dashboard-content">
+      <div class="dashboard-header">
+        <div>
+          <h1 id="welcome-message">Control Dashboard</h1>
+          <p style="color: var(--text-muted); font-size: 14px;">Approve service providers, check application metrics,
+            and add categories.</p>
+        </div>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-details">
+            <h3 id="stat-revenue">₹0</h3>
+            <p>Total Revenue</p>
+          </div>
+          <div class="stat-icon success">
+            <i class="fas fa-rupee-sign"></i>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-details">
+            <h3 id="stat-bookings">0</h3>
+            <p>Total Bookings</p>
+          </div>
+          <div class="stat-icon primary">
+            <i class="fas fa-shopping-bag"></i>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-details">
+            <h3 id="stat-providers">0</h3>
+            <p>Total Providers</p>
+          </div>
+          <div class="stat-icon info">
+            <i class="fas fa-user-tie"></i>
+          </div>
+        </div>
+        <div class="stat-card"
+          style="border-color: rgba(245, 158, 11, 0.3); background-color: rgba(245, 158, 11, 0.01);">
+          <div class="stat-details">
+            <h3 id="stat-pending" style="color: var(--warning);">0</h3>
+            <p>Pending Approvals</p>
+          </div>
+          <div class="stat-icon warning">
+            <i class="fas fa-user-clock"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL 1: USERS DIRECTORY -->
+      <div id="panel-users">
+        <!-- User Type Tabs -->
+        <div style="border-bottom: 2px solid var(--border); display: flex; gap: 20px; margin-bottom: 25px;">
+          <h3 id="tab-users-all"
+            style="padding-bottom: 12px; cursor: pointer; color: var(--primary); border-bottom: 2px solid var(--primary); font-size: 15px;">
+            All Registered</h3>
+          <h3 id="tab-users-consumers"
+            style="padding-bottom: 12px; cursor: pointer; color: var(--text-muted); border-bottom: 2px solid transparent; font-size: 15px;">
+            Consumers</h3>
+          <h3 id="tab-users-providers"
+            style="padding-bottom: 12px; cursor: pointer; color: var(--text-muted); border-bottom: 2px solid transparent; font-size: 15px;">
+            Service Providers</h3>
+          <h3 id="tab-users-pending"
+            style="padding-bottom: 12px; cursor: pointer; color: var(--text-muted); border-bottom: 2px solid transparent; font-size: 15px;">
+            Pending Approval</h3>
+        </div>
+
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Details</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="users-table-body">
+            <!-- Injected dynamically -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- PANEL 2: CATEGORIES CONTROL -->
+      <div id="panel-categories" style="display: none;">
+        <div class="panel-section">
+          <h3 style="margin-bottom: 20px; font-size: 20px;">Create New Service Category</h3>
+          <form id="category-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="cat-id" class="form-label">Category ID (lowercase, e.g. plumbing)</label>
+                <input type="text" id="cat-id" class="form-control" placeholder="plumbing" required>
+              </div>
+              <div class="form-group">
+                <label for="cat-name" class="form-label">Category Name</label>
+                <input type="text" id="cat-name" class="form-control" placeholder="Plumbing Services" required>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="cat-icon" class="form-label">FontAwesome Icon Class</label>
+                <input type="text" id="cat-icon" class="form-control" placeholder="fa-wrench" required>
+              </div>
+              <div class="form-group">
+                <label for="cat-desc" class="form-label">Brief Description</label>
+                <input type="text" id="cat-desc" class="form-control" placeholder="Expert leak repair and installations"
+                  required>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary" style="margin-top: 10px;">Add Category</button>
+          </form>
+        </div>
+
+        <!-- Categories & Subcategories List -->
+        <h3 style="margin-bottom: 20px; font-size: 22px;">Current Services Catalogue</h3>
+        <div id="admin-categories-list">
+          <!-- Injected dynamically -->
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Add Subcategory Modal -->
+  <div class="modal-overlay" id="subcategory-modal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title">Add Subcategory</h3>
+        <button class="modal-close" onclick="closeModal('subcategory-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="subcategory-form">
+          <input type="hidden" id="subcat-parent-id">
+
+          <div class="form-group">
+            <label class="form-label">Parent Category</label>
+            <p id="subcat-parent-name" style="font-weight: 600; color: var(--primary);"></p>
+          </div>
+
+          <div class="form-group">
+            <label for="subcat-name" class="form-label">Subcategory Name</label>
+            <input type="text" id="subcat-name" class="form-control" placeholder="Leakage Repair" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="subcat-price" class="form-label">Base Price (INR)</label>
+              <input type="number" id="subcat-price" class="form-control" placeholder="299" min="1" required>
+            </div>
+            <div class="form-group">
+              <label for="subcat-time" class="form-label">Estimated Service Time</label>
+              <input type="text" id="subcat-time" class="form-control" placeholder="1.5 hours" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="subcat-desc" class="form-label">Description Details</label>
+            <textarea id="subcat-desc" class="form-control" rows="3"
+              placeholder="Explain what is included in this subcategory service..." required></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%;">Create Subcategory</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/ui.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+
+</html>

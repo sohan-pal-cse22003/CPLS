@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UrbanAssist | Authentication</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/datepicker.css">
+</head>
+
+<body>
+
+  <div class="auth-wrapper">
+    <div class="auth-card">
+      <div class="auth-header">
+        <a href="index.html" class="logo"
+          style="margin-bottom: 20px; display: inline-flex; justify-content: center; font-size: 28px;">
+          <i class="fas fa-tools" style="color: var(--primary);"></i> CPLS
+        </a>
+        <h2 id="auth-title">Welcome Back</h2>
+        <p id="auth-subtitle">Login to manage your bookings and services</p>
+      </div>
+
+      <!-- Sign In / Sign Up Form -->
+      <form id="auth-form">
+        <!-- Name Field (Visible during Register) -->
+        <div class="form-group" id="name-group" style="display: none;">
+          <label for="auth-name" class="form-label">Full Name</label>
+          <input type="text" id="auth-name" class="form-control" placeholder="Enter your full name">
+        </div>
+
+        <div class="form-group">
+          <label for="auth-email" class="form-label">Email Address</label>
+          <input type="email" id="auth-email" class="form-control" placeholder="name@example.com" required>
+        </div>
+
+        <div class="form-group">
+          <label for="auth-password" class="form-label">Password</label>
+          <input type="password" id="auth-password" class="form-control" placeholder="••••••••" required>
+        </div>
+
+        <!-- Confirm Password Field (Visible during Register) -->
+        <div class="form-group" id="confirm-password-group" style="display: none;">
+          <label for="auth-confirm-password" class="form-label">Confirm Password</label>
+          <input type="password" id="auth-confirm-password" class="form-control" placeholder="••••••••">
+        </div>
+
+        <!-- Role Selector & Category (Visible during Register) -->
+        <div id="register-details" style="display: none;">
+          <label class="form-label">I want to register as a:</label>
+          <div class="role-selector">
+            <div class="role-option active" data-role="consumer" id="role-consumer">Consumer</div>
+            <div class="role-option" data-role="provider" id="role-provider">Partner (Pro)</div>
+            <div class="role-option" data-role="admin" id="role-admin">Admin</div>
+          </div>
+
+          <!-- Provider Specific Fields -->
+          <div class="form-group" id="provider-fields" style="display: none;">
+            <label class="form-label" style="margin-bottom: 8px;">Select Services You Can Provide</label>
+            <div id="provider-services-checkboxes"
+              style="max-height: 220px; overflow-y: auto; border: 1px solid var(--border); padding: 15px; border-radius: var(--radius-md); background: var(--white); display: flex; flex-direction: column; gap: 12px; box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.03);">
+              <!-- Injected dynamically by login.js -->
+            </div>
+            <span style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 8px;">
+              Note: Provider registrations are subject to admin review and approval.
+            </span>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 15px;" id="auth-submit-btn">Sign
+          In</button>
+      </form>
+
+      <div class="auth-toggle">
+        <p id="toggle-text">Don't have an account? <span id="toggle-auth-mode">Sign Up</span></p>
+      </div>
+
+      <!-- Quick Login Help for Evaluation -->
+      <div
+        style="margin-top: 30px; padding: 15px; border-radius: var(--radius-md); background: var(--light); border: 1px dashed var(--border); font-size: 12px;">
+        <p style="font-weight: 700; margin-bottom: 5px; color: var(--dark);"><i class="fas fa-info-circle"></i> Quick
+          Access Accounts:</p>
+        <ul style="list-style: disc; margin-left: 15px; color: var(--text-muted); display: grid; gap: 4px;">
+          <li><strong>Consumer:</strong> consumer@service.com (pwd: consumer)</li>
+          <li><strong>Service Provider:</strong> provider@service.com (pwd: provider)</li>
+          <li><strong>Admin:</strong> admin@service.com (pwd: admin)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/ui.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/login.js"></script>
+</body>
+
+</html>
