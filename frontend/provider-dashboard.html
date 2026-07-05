@@ -69,17 +69,24 @@
             </span>
           </div>
 
-          <a href="#" class="sidebar-link" onclick="window.db.logout()">
-            <i class="fas fa-sign-out-alt"></i> Log Out
-          </a>
         </div>
       </div>
 
-      <div class="sidebar-user">
-        <div class="user-avatar" id="sidebar-avatar">P</div>
-        <div class="user-info">
-          <h4 id="sidebar-name">Provider Name</h4>
-          <p id="sidebar-expert">Plumbing Pro</p>
+      <div class="sidebar-user-section">
+        <div class="sidebar-user">
+          <div class="user-avatar" id="sidebar-avatar">P</div>
+          <div class="user-info">
+            <h4 id="sidebar-name">Provider Name</h4>
+            <p id="sidebar-expert">Plumbing Pro</p>
+          </div>
+        </div>
+        <div class="sidebar-user-actions">
+          <button class="sidebar-action-btn" onclick="window.openProfileEditModal()">
+            <i class="fas fa-user-edit"></i> Edit Profile
+          </button>
+          <button class="sidebar-action-btn sidebar-action-danger" onclick="window.db.logout()">
+            <i class="fas fa-sign-out-alt"></i> Log Out
+          </button>
         </div>
       </div>
     </aside>
@@ -206,8 +213,16 @@
       const sidebar  = document.querySelector('.sidebar');
       function open()  { sidebar.classList.add('open'); backdrop.classList.add('active'); btn.innerHTML = '<i class="fas fa-times"></i>'; }
       function close() { sidebar.classList.remove('open'); backdrop.classList.remove('active'); btn.innerHTML = '<i class="fas fa-bars"></i>'; }
-      btn.addEventListener('click', () => sidebar.classList.contains('open') ? close() : open());
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        sidebar.classList.contains('open') ? close() : open();
+      });
       backdrop.addEventListener('click', close);
+      document.addEventListener('click', (e) => {
+        if (sidebar.classList.contains('open') && !sidebar.contains(e.target) && !btn.contains(e.target)) {
+          close();
+        }
+      });
       document.querySelectorAll('.sidebar-link').forEach(l => l.addEventListener('click', () => { if (window.innerWidth <= 992) close(); }));
     })();
   </script>

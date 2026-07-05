@@ -218,6 +218,54 @@ class APIDatabase {
 window.db = new APIDatabase();
 
 
+// ─── Button Loading Utility ────────────────────────────────────────────────
+/**
+ * Put a button into a loading state (spinner + disabled).
+ * @param {HTMLButtonElement} btn
+ * @param {string} [loadingText]  - Optional label to show next to spinner
+ */
+window.setButtonLoading = function (btn, loadingText = '') {
+  if (!btn) return;
+  // Wrap existing HTML in a label span (idempotent)
+  if (!btn.querySelector('.btn-label')) {
+    btn.innerHTML = `<span class="btn-label">${btn.innerHTML}</span>`;
+  }
+  // Store original label content for later restore
+  btn._originalLabel = btn.querySelector('.btn-label').innerHTML;
+
+  if (loadingText) {
+    btn.querySelector('.btn-label').textContent = loadingText;
+    btn.querySelector('.btn-label').style.visibility = 'visible';
+    btn.querySelector('.btn-label').style.opacity = '0.9';
+    btn.querySelector('.btn-label').style.marginLeft = '22px';
+  }
+
+  btn.classList.add('btn-loading');
+  btn.disabled = true;
+  btn.setAttribute('aria-busy', 'true');
+};
+
+/**
+ * Restore a button to its normal interactive state.
+ * @param {HTMLButtonElement} btn
+ */
+window.resetButton = function (btn) {
+  if (!btn) return;
+  btn.classList.remove('btn-loading');
+  btn.disabled = false;
+  btn.removeAttribute('aria-busy');
+
+  const label = btn.querySelector('.btn-label');
+  if (label && btn._originalLabel !== undefined) {
+    label.innerHTML = btn._originalLabel;
+    label.style.visibility = '';
+    label.style.opacity = '';
+    label.style.marginLeft = '';
+  }
+};
+// ──────────────────────────────────────────────────────────────────────────
+
+
 // --- LAYOUT RENDERING UTILITY (UrbanClap Styling) ---
 window.renderLayout = function (activeLink = '') {
   const currentUser = window.db.getCurrentUser();
@@ -360,9 +408,20 @@ window.renderLayout = function (activeLink = '') {
     hamburgerBtn.setAttribute('aria-expanded', 'false');
   }
 
-  hamburgerBtn.addEventListener('click', openNavDrawer);
+  hamburgerBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openNavDrawer();
+  });
   drawerCloseBtn.addEventListener('click', closeNavDrawer);
   mobileOverlay.addEventListener('click', closeNavDrawer);
+  
+  // Close drawer when clicking anywhere outside it
+  document.addEventListener('click', (e) => {
+    if (mobileDrawer.classList.contains('open') && !mobileDrawer.contains(e.target) && !hamburgerBtn.contains(e.target)) {
+      closeNavDrawer();
+    }
+  });
+
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeNavDrawer(); });
   // Close drawer on any link click inside
   mobileDrawer.querySelectorAll('a, button').forEach(el => {
@@ -450,30 +509,41 @@ window.renderLayout = function (activeLink = '') {
     document.head.appendChild(fa);
   }
 
+  // Profile modal is set up independently (see window.setupProfileModal below)
+  window.setupProfileModal();
+};
+
+// ─── Edit Profile Modal — runs on EVERY page automatically ───────────────────
+// Defined outside renderLayout so dashboard pages (customer/provider) that
+// do NOT call renderLayout can still use the Edit Profile button.
+window.setupProfileModal = function () {
+  const currentUser = window.db.getCurrentUser();
+  const isLoggedIn  = !!currentUser;
+
   // Inject Edit Profile Modal HTML (if logged in)
   if (isLoggedIn && !document.getElementById('profile-edit-modal')) {
     const modalHtml = `
-      <div class="modal-overlay" id="profile-edit-modal">
-        <div class="modal-container" style="max-width: 400px; text-align: left;">
+      <div class="modal-overlay profile-edit-overlay" id="profile-edit-modal">
+        <div class="modal-container profile-edit-container">
           <div class="modal-header">
             <h3 class="modal-title">Edit Your Profile</h3>
-            <button class="modal-close" onclick="window.closeProfileEditModal()">&times;</button>
+            <button class="modal-close profile-modal-close" onclick="window.closeProfileEditModal()" aria-label="Close">&times;</button>
           </div>
           <div class="modal-body">
             <form id="profile-edit-form">
               <div class="form-group">
                 <label for="prof-name" class="form-label">Full Name</label>
-                <input type="text" id="prof-name" class="form-control" placeholder="Your Name" required>
+                <input type="text" id="prof-name" class="form-control" placeholder="Your Name" autocomplete="name" required>
               </div>
               <div class="form-group">
                 <label for="prof-email" class="form-label">Email Address</label>
-                <input type="email" id="prof-email" class="form-control" placeholder="name@example.com" required>
+                <input type="email" id="prof-email" class="form-control" placeholder="name@example.com" autocomplete="email" required>
               </div>
               <div class="form-group">
-                <label for="prof-password" class="form-label">New Password (leave blank to keep current)</label>
-                <input type="password" id="prof-password" class="form-control" placeholder="••••••••">
+                <label for="prof-password" class="form-label">New Password <span class="form-label-hint">(leave blank to keep current)</span></label>
+                <input type="password" id="prof-password" class="form-control" placeholder="••••••••" autocomplete="new-password">
               </div>
-              <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">Save Profile</button>
+              <button type="submit" class="btn btn-primary profile-save-btn">Save Profile</button>
             </form>
           </div>
         </div>
@@ -483,6 +553,24 @@ window.renderLayout = function (activeLink = '') {
     div.innerHTML = modalHtml;
     document.body.appendChild(div.firstElementChild);
 
+    // Scroll-lock helpers — prevent page scrolling while modal is open
+    // (also handles iOS Safari's position:fixed quirk)
+    let _scrollY = 0;
+    function lockBodyScroll() {
+      _scrollY = window.scrollY;
+      document.body.style.overflow   = 'hidden';
+      document.body.style.position   = 'fixed';
+      document.body.style.top        = `-${_scrollY}px`;
+      document.body.style.width      = '100%';
+    }
+    function unlockBodyScroll() {
+      document.body.style.overflow   = '';
+      document.body.style.position   = '';
+      document.body.style.top        = '';
+      document.body.style.width      = '';
+      window.scrollTo(0, _scrollY);
+    }
+
     // Modal control functions
     window.openProfileEditModal = function () {
       const user = window.db.getCurrentUser();
@@ -490,20 +578,45 @@ window.renderLayout = function (activeLink = '') {
       document.getElementById('prof-name').value = user.name;
       document.getElementById('prof-email').value = user.email;
       document.getElementById('prof-password').value = '';
-      
+
       const form = document.getElementById('profile-edit-form');
       if (window.clearFormErrors) window.clearFormErrors(form);
-      
-      document.getElementById('profile-edit-modal').classList.add('active');
-      
-      // Close dropdowns
+
+      // Close desktop dropdown
       const dropdown = document.getElementById('user-dropdown');
       if (dropdown) dropdown.style.display = 'none';
+
+      // Close mobile nav drawer (index / providers page)
+      const mobileDrawer = document.getElementById('nav-mobile-drawer');
+      const mobileOverlay = document.getElementById('nav-mobile-overlay');
+      if (mobileDrawer)  mobileDrawer.classList.remove('open');
+      if (mobileOverlay) mobileOverlay.classList.remove('active');
+
+      // Close dashboard sidebar (customer / provider dashboard)
+      const sidebar = document.querySelector('.sidebar');
+      const sidebarBackdrop = document.getElementById('sidebar-backdrop');
+      if (sidebar)         sidebar.classList.remove('open');
+      if (sidebarBackdrop) sidebarBackdrop.classList.remove('active');
+
+      // Lock scroll BEFORE the modal appears so the page doesn't jump
+      lockBodyScroll();
+
+      // Small delay so any drawer/sidebar close animation finishes first
+      setTimeout(() => {
+        document.getElementById('profile-edit-modal').classList.add('active');
+      }, 80);
     };
 
     window.closeProfileEditModal = function () {
       document.getElementById('profile-edit-modal').classList.remove('active');
+      unlockBodyScroll();
     };
+
+    // Close on backdrop click (tap outside the sheet)
+    document.getElementById('profile-edit-modal').addEventListener('click', function (e) {
+      if (e.target === this) window.closeProfileEditModal();
+    });
+
 
     // Form submission logic
     const profForm = document.getElementById('profile-edit-form');
@@ -521,6 +634,9 @@ window.renderLayout = function (activeLink = '') {
       if (passVal && passVal.length < 6) { window.setFieldError(document.getElementById('prof-password'), 'Password must be at least 6 characters'); hasError = true; }
 
       if (hasError) return;
+
+      const saveBtn = profForm.querySelector('[type="submit"]');
+      window.setButtonLoading(saveBtn, 'Saving…');
 
       try {
         const updated = await window.db.updateProfile(nameVal, emailVal, passVal || null);
@@ -549,6 +665,8 @@ window.renderLayout = function (activeLink = '') {
         });
       } catch (err) {
         window.toastError(err.message, 'Update Failed');
+      } finally {
+        window.resetButton(saveBtn);
       }
     });
 
@@ -557,3 +675,10 @@ window.renderLayout = function (activeLink = '') {
     });
   }
 };
+
+// Auto-run profile modal setup on every page once DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+  // Small delay to allow page-specific JS (customer.js, provider.js etc.)
+  // to run first so getCurrentUser() is populated
+  setTimeout(window.setupProfileModal, 0);
+});

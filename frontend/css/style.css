@@ -40,6 +40,11 @@
   padding: 0;
 }
 
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+}
+
 body {
   font-family: 'Inter', sans-serif;
   background-color: var(--light);
@@ -152,6 +157,41 @@ header.scrolled {
   cursor: pointer;
   transition: var(--transition);
   outline: none;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ── Button Loading / Spinner ───────────────────────────── */
+.btn:disabled,
+.btn.btn-loading {
+  cursor: not-allowed;
+  opacity: 0.72;
+  pointer-events: none;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.btn-loading .btn-label {
+  visibility: hidden;
+  opacity: 0;
+}
+
+.btn-loading::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 2.5px solid currentColor;
+  border-top-color: transparent;
+  animation: btn-spin 0.65s linear infinite;
+}
+
+@keyframes btn-spin {
+  to { transform: translate(-50%, -50%) rotate(360deg); }
 }
 
 .btn-primary {
@@ -671,6 +711,72 @@ header.scrolled {
   color: var(--text-muted);
 }
 
+/* Sidebar bottom user section with action buttons */
+.sidebar-user-section {
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.sidebar-user-section .sidebar-user {
+  padding-top: 0;
+  border-top: none;
+  margin-bottom: 12px;
+}
+
+.sidebar-user-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sidebar-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 14px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--light);
+  color: var(--text-main);
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: var(--transition);
+  text-align: left;
+}
+
+.sidebar-action-btn:hover {
+  background: rgba(79, 70, 229, 0.08);
+  color: var(--primary);
+}
+
+.sidebar-action-btn i {
+  width: 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+  transition: var(--transition);
+}
+
+.sidebar-action-btn:hover i {
+  color: var(--primary);
+}
+
+.sidebar-action-danger {
+  color: var(--text-main);
+}
+
+.sidebar-action-danger:hover {
+  background: rgba(239, 68, 68, 0.08);
+  color: var(--danger);
+}
+
+.sidebar-action-danger:hover i {
+  color: var(--danger);
+}
+
 .dashboard-content {
   padding: 40px;
   overflow-y: auto;
@@ -1049,7 +1155,8 @@ footer {
 .nav-mobile-drawer {
   position: fixed;
   top: 0;
-  right: -100%;
+  right: 0;
+  transform: translateX(100%);
   width: min(300px, 85vw);
   height: 100vh;
   background: var(--white);
@@ -1059,10 +1166,11 @@ footer {
   padding: 24px 20px;
   gap: 8px;
   box-shadow: var(--shadow-xl);
-  transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  visibility: hidden;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow-y: auto;
 }
-.nav-mobile-drawer.open { right: 0; }
+.nav-mobile-drawer.open { transform: translateX(0); visibility: visible; }
 
 .nav-drawer-header {
   display: flex;
@@ -1178,16 +1286,23 @@ footer {
     display: flex !important;
     position: fixed;
     top: 0;
-    left: -280px;
+    left: 0;
+    transform: translateX(-100%);
     width: 260px;
     height: 100vh;
     z-index: 300;
-    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    visibility: hidden;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: var(--shadow-xl);
     overflow-y: auto;
   }
-  .sidebar.open { left: 0; }
+  .sidebar.open { transform: translateX(0); visibility: visible; }
   .sidebar-toggle-btn { display: flex; }
+
+  .sidebar .logo {
+    padding-left: 48px;
+    margin-bottom: 25px !important;
+  }
 
   .dashboard-content {
     padding: 24px 20px;
@@ -1298,4 +1413,124 @@ footer {
 @keyframes fadeIn {
   from { opacity: 0; }
   to   { opacity: 1; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   EDIT PROFILE MODAL — DESKTOP + MOBILE STYLES
+   ═══════════════════════════════════════════════════════════ */
+
+/* Desktop: centred card, capped width */
+.profile-edit-container {
+  max-width: 420px;
+  text-align: left;
+}
+
+/* Hint text inside password label */
+.form-label-hint {
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-left: 4px;
+}
+
+/* Larger close button tap target */
+.profile-modal-close {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 22px;
+  transition: var(--transition);
+}
+.profile-modal-close:hover {
+  background-color: var(--light);
+  color: var(--dark);
+}
+
+/* Save button: full width */
+.profile-save-btn {
+  width: 100%;
+  margin-top: 8px;
+  padding: 13px 20px;
+}
+
+/* ── Mobile: bottom-sheet ── */
+@media (max-width: 640px) {
+  /* Overlay: align to bottom, raised above sidebar (z-300) and nav drawer (z-200) */
+  .profile-edit-overlay {
+    align-items: flex-end;
+    padding: 0;
+    z-index: 310;
+  }
+
+  /* Container: full-width bottom sheet with rounded top corners */
+  .profile-edit-overlay .profile-edit-container {
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;           /* override generic .modal-container { margin: 12px } */
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    max-height: 92vh;
+    /* slide-in from bottom instead of fade-from-centre */
+    transform: translateY(100%);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    /* safe-area padding for notch phones */
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+    overflow-y: auto;
+  }
+
+  .profile-edit-overlay.active .profile-edit-container {
+    transform: translateY(0);
+  }
+
+  /* Drag handle visual cue */
+  .profile-edit-container .modal-header::before {
+    content: '';
+    display: block;
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+  }
+  .profile-edit-container .modal-header {
+    position: relative;
+    padding-top: 26px;
+  }
+
+  /* Bigger input fields for easier tapping */
+  #profile-edit-form .form-control {
+    padding: 13px 14px;
+    font-size: 16px; /* prevents iOS auto-zoom */
+  }
+
+  /* Slightly larger label text */
+  #profile-edit-form .form-label {
+    font-size: 15px;
+  }
+
+  /* Extra breathing room in body */
+  .profile-edit-overlay .modal-body {
+    padding: 20px 20px 8px;
+  }
+
+  .profile-save-btn {
+    padding: 15px 20px;
+    font-size: 16px;
+    margin-bottom: 8px;
+  }
+}
+
+/* ── Very small phones (≤ 390px) ── */
+@media (max-width: 390px) {
+  .profile-edit-overlay .modal-body {
+    padding: 16px 16px 8px;
+  }
+  #profile-edit-form .form-control {
+    font-size: 16px;
+  }
 }

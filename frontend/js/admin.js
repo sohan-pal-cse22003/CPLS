@@ -320,6 +320,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!descEl.value.trim()) { window.setFieldError(descEl, 'Description is required.'); hasError = true; }
     if (hasError) return;
 
+    const catBtn = catForm.querySelector('[type="submit"]');
+    window.setButtonLoading(catBtn, 'Creating…');
+
     try {
       await window.db.addCategory(idEl.value.trim(), nameEl.value.trim(), iconEl.value.trim(), descEl.value.trim());
       window.toastSuccess(`"${nameEl.value.trim()}" has been added to the service catalogue.`, 'Category Created');
@@ -327,6 +330,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       loadDashboard();
     } catch (err) {
       window.toastError(err.message, 'Category Creation Failed');
+    } finally {
+      window.resetButton(catBtn);
     }
   });
 
@@ -348,12 +353,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!descEl.value.trim())          { window.setFieldError(descEl,  'Please describe what this service includes.'); hasError = true; }
     if (hasError) return;
 
+    const subcatBtn = subcatForm.querySelector('[type="submit"]');
+    window.setButtonLoading(subcatBtn, 'Saving…');
+
     try {
       await window.db.addSubcategory(parentId, nameEl.value.trim(), priceEl.value, timeEl.value.trim(), descEl.value.trim());
       window.toastSuccess(`"${nameEl.value.trim()}" subcategory created successfully!`, 'Subcategory Added');
       window.closeModal('subcategory-modal');
       loadDashboard();
-    } catch (err) { window.toastError(err.message, 'Subcategory Creation Failed'); }
+    } catch (err) {
+      window.toastError(err.message, 'Subcategory Creation Failed');
+    } finally {
+      window.resetButton(subcatBtn);
+    }
   });
 
   // Clear inline errors on input
@@ -383,6 +395,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       if (hasError) return;
 
+      const adminBtn = adminForm.querySelector('[type="submit"]');
+      window.setButtonLoading(adminBtn, 'Creating Admin…');
+
       try {
         await window.db.createAdmin(emailEl.value.trim(), nameEl.value.trim(), passwordEl.value);
         window.toastSuccess(`Administrator account for "${nameEl.value.trim()}" created successfully.`, 'Admin Created');
@@ -392,6 +407,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         switchPanel('users');
       } catch (err) {
         window.toastError(err.message, 'Admin Registration Failed');
+      } finally {
+        window.resetButton(adminBtn);
       }
     });
 

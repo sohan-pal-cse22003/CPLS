@@ -251,6 +251,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.setFieldValid(timeEl);
     window.setFieldValid(addressEl);
 
+    const bookBtn = bookingForm.querySelector('[type="submit"]');
+    window.setButtonLoading(bookBtn, 'Booking…');
+
     try {
       await window.db.createBooking(category, subcatIdVal, providerId, price, date, time, address);
       window.toastSuccess('Booking confirmed! Redirecting to your dashboard…', 'Booking Confirmed 🎉');
@@ -258,6 +261,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       setTimeout(() => { window.location.href = 'customer-dashboard.html'; }, 1600);
     } catch (error) {
       window.toastError(error.message, 'Booking Failed');
+      window.resetButton(bookBtn);
     }
   });
 

@@ -144,6 +144,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
+    const servicesBtn = e.target.querySelector('[type="submit"]');
+    window.setButtonLoading(servicesBtn, 'Saving…');
+
     try {
       const updated = await window.db.updateProviderServices(currentUser.id, servicesData);
       currentUser.services = updated.services; // update local ref
@@ -153,6 +156,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       loadDashboard();
     } catch (err) {
       window.toastError(err.message, 'Update Failed');
+    } finally {
+      window.resetButton(servicesBtn);
     }
   });
 
@@ -253,14 +258,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (currentTab === 'requests') {
         actionButtons = `
           <div style="display:flex;gap:8px;">
-            <button class="btn btn-outline btn-sm btn-danger" onclick="rejectRequest('${b.id}')">Decline</button>
-            <button class="btn btn-primary btn-sm" onclick="acceptRequest('${b.id}')">Accept Request</button>
+            <button class="btn btn-outline btn-sm btn-danger" onclick="rejectRequest('${b.id}', this)">Decline</button>
+            <button class="btn btn-primary btn-sm" onclick="acceptRequest('${b.id}', this)">Accept Request</button>
           </div>`;
       } else if (currentTab === 'active') {
         if (b.status === 'accepted') {
           actionButtons = `<button class="btn btn-secondary btn-sm" onclick="promptOtp('${b.id}')">Start Service</button>`;
         } else {
-          actionButtons = `<button class="btn btn-sm" style="background-color:var(--success);color:white;" onclick="updateStatus('${b.id}','completed')">Mark Completed ✓</button>`;
+          actionButtons = `<button class="btn btn-sm" style="background-color:var(--success);color:white;" onclick="updateStatus('${b.id}','completed', this)">Mark Completed ✓</button>`;
         }
       } else {
         if (b.status === 'completed' && b.rating > 0) {
@@ -341,21 +346,29 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // ── Action handlers ───────────────────────────────────────
-  window.acceptRequest = async (bookingId) => {
+  window.acceptRequest = async (bookingId, btn) => {
+    window.setButtonLoading(btn, 'Accepting…');
     try {
       const updated = await window.db.updateBookingStatus(bookingId, 'accepted');
       window.toastSuccess('Job accepted! Find it under "Active Tasks" to manage progress.', 'Job Accepted ✅');
       updateLocalBooking(updated);
-    } catch (err) { window.toastError(err.message, 'Action Failed'); }
+    } catch (err) {
+      window.toastError(err.message, 'Action Failed');
+      window.resetButton(btn);
+    }
   };
 
-  window.rejectRequest = async (bookingId) => {
+  window.rejectRequest = async (bookingId, btn) => {
     if (!confirm('Decline this job request?')) return;
+    window.setButtonLoading(btn, 'Declining…');
     try {
       const updated = await window.db.updateBookingStatus(bookingId, 'cancelled');
       window.toastInfo('Job request declined.', 'Request Declined');
       updateLocalBooking(updated);
-    } catch (err) { window.toastError(err.message, 'Action Failed'); }
+    } catch (err) {
+      window.toastError(err.message, 'Action Failed');
+      window.resetButton(btn);
+    }
   };
 
   window.promptOtp = (bookingId) => {
@@ -369,6 +382,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const bookingId = document.getElementById('otp-booking-id').value;
     const enteredOtp = document.getElementById('entered-otp').value.trim();
 
+    const otpBtn = e.target.querySelector('[type="submit"]');
+    window.setButtonLoading(otpBtn, 'Verifying…');
+
     try {
       const updated = await window.db.updateBookingStatus(bookingId, 'in-progress', enteredOtp);
       window.toastSuccess('OTP verified! Job started. Update the customer on your arrival.', 'Job Started 🚀');
@@ -376,17 +392,22 @@ document.addEventListener('DOMContentLoaded', async () => {
       updateLocalBooking(updated);
     } catch (err) {
       window.toastError(err.message, 'Verification Failed');
+      window.resetButton(otpBtn);
     }
   });
 
-  window.updateStatus = async (bookingId, status) => {
+  window.updateStatus = async (bookingId, status, btn) => {
+    if (btn) window.setButtonLoading(btn, status === 'completed' ? 'Completing…' : 'Updating…');
     try {
       const updated = await window.db.updateBookingStatus(bookingId, status);
       const msg = status === 'in-progress' ? 'Job started! Update the customer on your arrival.' : 'Job marked as completed!';
       const title = status === 'in-progress' ? 'Job Started 🚀' : 'Job Completed 🎉';
       window.toastSuccess(msg, title);
       updateLocalBooking(updated);
-    } catch (err) { window.toastError(err.message, 'Update Failed'); }
+    } catch (err) {
+      window.toastError(err.message, 'Update Failed');
+      if (btn) window.resetButton(btn);
+    }
   };
 
   window.openModal  = (id) => document.getElementById(id).classList.add('active');

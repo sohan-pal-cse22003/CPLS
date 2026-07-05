@@ -510,11 +510,18 @@
         toggleBtn.setAttribute('aria-label', 'Open menu');
       }
 
-      toggleBtn.addEventListener('click', () => {
+      toggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
         sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
       });
 
       backdrop.addEventListener('click', closeSidebar);
+
+      document.addEventListener('click', (e) => {
+        if (sidebar.classList.contains('open') && !sidebar.contains(e.target) && !toggleBtn.contains(e.target)) {
+          closeSidebar();
+        }
+      });
 
       // Close sidebar when a menu link is clicked on mobile
       document.querySelectorAll('.sidebar-link').forEach(link => {

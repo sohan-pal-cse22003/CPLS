@@ -200,9 +200,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (hasError) return;
 
-    // Disable button to prevent double submit
-    submitBtn.disabled = true;
-    submitBtn.textContent = isLoginMode ? 'Signing In…' : 'Creating Account…';
+    // Lock button with spinner while request is in-flight
+    window.setButtonLoading(submitBtn, isLoginMode ? 'Signing In…' : 'Creating Account…');
 
     try {
       if (isLoginMode) {
@@ -238,8 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } catch (error) {
       window.toastError(error.message, isLoginMode ? 'Login Failed' : 'Registration Failed');
-      submitBtn.disabled = false;
-      submitBtn.textContent = isLoginMode ? 'Sign In' : 'Sign Up';
+      window.resetButton(submitBtn);
     }
   });
 
