@@ -31,10 +31,10 @@ export class RegisterDto {
   @MinLength(6, { message: 'Password must be at least 6 characters' })
   password: string;
 
-  @IsEnum(['admin', 'provider', 'consumer'], {
+  @IsEnum(['provider', 'consumer'], {
     message: 'Invalid role selection',
   })
-  role: 'admin' | 'provider' | 'consumer';
+  role: 'provider' | 'consumer';
 
   @IsArray()
   @IsOptional()
@@ -49,4 +49,20 @@ export class LoginDto {
 
   @IsString()
   password: string;
+}
+
+export class UpdateProfileDto {
+  @IsString()
+  @IsOptional()
+  @MinLength(2, { message: 'Name must be at least 2 characters' })
+  name?: string;
+
+  @IsEmail({}, { message: 'Please enter a valid email address' })
+  @IsOptional()
+  email?: string;
+
+  @IsString()
+  @IsOptional()
+  @MinLength(6, { message: 'Password must be at least 6 characters' })
+  password?: string;
 }

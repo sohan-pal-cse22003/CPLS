@@ -1,4 +1,4 @@
-import { Injectable, ConflictException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, ConflictException, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
@@ -8,7 +8,7 @@ import { User } from '../entities/user.entity';
 import { Listing } from '../entities/listing.entity';
 import { Subcategory } from '../entities/subcategory.entity';
 import { TokenList } from '../entities/token-list.entity';
-import { RegisterDto, LoginDto } from '../dtos/auth.dto';
+import { RegisterDto, LoginDto, UpdateProfileDto } from '../dtos/auth.dto';
 
 @Injectable()
 export class AuthService {
@@ -32,6 +32,10 @@ export class AuthService {
   async register(registerDto: RegisterDto): Promise<User> {
     const { email, name, password, role, services } = registerDto;
     const emailLower = email.toLowerCase().trim();
+
+    if (role as string === 'admin') {
+      throw new BadRequestException('Administrators cannot be created through public registration.');
+    }
 
     const exists = await this.userRepository.findOne({
       where: { email: emailLower },
@@ -162,5 +166,37 @@ export class AuthService {
 
   async getProfile(req: ExpressRequest): Promise<any> {
     return (req as any).user;
+  }
+
+  async updateProfile(userId: string, updateDto: UpdateProfileDto): Promise<User> {
+    const { name, email, password } = updateDto;
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: { listings: true },
+    });
+    if (!user) {
+      throw new ConflictException('User not found');
+    }
+
+    if (email) {
+      const emailLower = email.toLowerCase().trim();
+      if (emailLower !== user.email) {
+        const exists = await this.userRepository.findOne({ where: { email: emailLower } });
+        if (exists) {
+          throw new ConflictException('Email already in use by another account');
+        }
+        user.email = emailLower;
+      }
+    }
+
+    if (name) {
+      user.name = name.trim();
+    }
+
+    if (password) {
+      user.password = await argon2.hash(password);
+    }
+
+    return this.userRepository.save(user);
   }
 }

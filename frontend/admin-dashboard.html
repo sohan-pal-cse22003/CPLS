@@ -25,7 +25,8 @@
 
     .admin-table {
       width: 100%;
-      min-width: 700px; /* prevents squishing; triggers scroll below this */
+      min-width: 700px;
+      /* prevents squishing; triggers scroll below this */
       border-collapse: collapse;
       background: var(--white);
     }
@@ -40,7 +41,8 @@
     }
 
     .admin-table td:nth-child(4) {
-      white-space: normal; /* Allow Details column to wrap */
+      white-space: normal;
+      /* Allow Details column to wrap */
       min-width: 200px;
     }
 
@@ -152,8 +154,14 @@
       -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
     }
-    .admin-tabs::-webkit-scrollbar { display: none; }
-    .admin-tabs h3 { flex-shrink: 0; }
+
+    .admin-tabs::-webkit-scrollbar {
+      display: none;
+    }
+
+    .admin-tabs h3 {
+      flex-shrink: 0;
+    }
 
     /* ── Stats grid: 2 cols on tablet, 1 on mobile ── */
     @media (max-width: 992px) {
@@ -162,7 +170,8 @@
       }
 
       .sidebar {
-        display: flex !important; /* override the global hide */
+        display: flex !important;
+        /* override the global hide */
         position: fixed;
         top: 0;
         left: -280px;
@@ -180,7 +189,8 @@
 
       .dashboard-content {
         padding: 24px 16px;
-        padding-top: 72px; /* space for toggle button */
+        padding-top: 72px;
+        /* space for toggle button */
       }
     }
 
@@ -217,8 +227,13 @@
     }
 
     @keyframes fadeIn {
-      from { opacity: 0; }
-      to   { opacity: 1; }
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
     }
   </style>
 </head>
@@ -245,6 +260,9 @@
         <div class="sidebar-menu">
           <a href="#" class="sidebar-link active" id="menu-users" onclick="switchPanel('users')">
             <i class="fas fa-users-cog"></i> Users Directory
+          </a>
+          <a href="#" class="sidebar-link" id="menu-admin" onclick="switchPanel('admin')">
+            <i class="fas fa-user-shield"></i> Create Administrator
           </a>
           <a href="#" class="sidebar-link" id="menu-categories" onclick="switchPanel('categories')">
             <i class="fas fa-cubes"></i> Service Categories
@@ -353,6 +371,37 @@
         </div>
       </div>
 
+      <!-- PANEL: CREATE ADMINISTRATOR -->
+      <div id="panel-create-admin" style="display: none;">
+        <div class="panel-section" style="max-width: 600px; margin: 0 auto 40px auto;">
+          <h3 style="margin-bottom: 10px; font-size: 20px; display: flex; align-items: center; gap: 8px;">
+            <i class="fas fa-user-shield" style="color: var(--primary);"></i> Register New Administrator
+          </h3>
+          <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 25px;">
+            Create a secure administrator account. Administrators have permissions to manage users, category structures, and view platform revenues.
+          </p>
+          <form id="admin-creation-form">
+            <div class="form-group">
+              <label for="adm-name" class="form-label">Full Name</label>
+              <input type="text" id="adm-name" class="form-control" placeholder="Enter name" required>
+            </div>
+            <div class="form-group">
+              <label for="adm-email" class="form-label">Email Address</label>
+              <input type="email" id="adm-email" class="form-control" placeholder="admin@cpls.com" required>
+            </div>
+            <div class="form-group">
+              <label for="adm-password" class="form-label">Password</label>
+              <input type="password" id="adm-password" class="form-control" placeholder="••••••••" required>
+            </div>
+            <div class="form-group">
+              <label for="adm-confirm" class="form-label">Confirm Password</label>
+              <input type="password" id="adm-confirm" class="form-control" placeholder="••••••••" required>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">Create Administrator</button>
+          </form>
+        </div>
+      </div>
+
       <!-- PANEL 2: CATEGORIES CONTROL -->
       <div id="panel-categories" style="display: none;">
         <div class="panel-section">
@@ -444,8 +493,8 @@
     // ── Mobile sidebar toggle ────────────────────────────────
     (function () {
       const toggleBtn = document.getElementById('sidebar-toggle-btn');
-      const backdrop  = document.getElementById('sidebar-backdrop');
-      const sidebar   = document.querySelector('.sidebar');
+      const backdrop = document.getElementById('sidebar-backdrop');
+      const sidebar = document.querySelector('.sidebar');
 
       function openSidebar() {
         sidebar.classList.add('open');

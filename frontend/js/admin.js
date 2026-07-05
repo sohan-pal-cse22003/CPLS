@@ -26,20 +26,32 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ── Panel Switching ───────────────────────────────────────
   window.switchPanel = (panelId) => {
     const menuUsers       = document.getElementById('menu-users');
+    const menuAdmin       = document.getElementById('menu-admin');
     const menuCategories  = document.getElementById('menu-categories');
+    
     const panelUsers      = document.getElementById('panel-users');
+    const panelAdmin      = document.getElementById('panel-create-admin');
     const panelCategories = document.getElementById('panel-categories');
 
+    // Reset active class
+    [menuUsers, menuAdmin, menuCategories].forEach(el => {
+      if (el) el.classList.remove('active');
+    });
+
+    // Hide all panels
+    [panelUsers, panelAdmin, panelCategories].forEach(el => {
+      if (el) el.style.display = 'none';
+    });
+
     if (panelId === 'users') {
-      menuUsers.classList.add('active');
-      menuCategories.classList.remove('active');
-      panelUsers.style.display      = 'block';
-      panelCategories.style.display = 'none';
+      if (menuUsers) menuUsers.classList.add('active');
+      if (panelUsers) panelUsers.style.display = 'block';
+    } else if (panelId === 'admin') {
+      if (menuAdmin) menuAdmin.classList.add('active');
+      if (panelAdmin) panelAdmin.style.display = 'block';
     } else {
-      menuCategories.classList.add('active');
-      menuUsers.classList.remove('active');
-      panelCategories.style.display = 'block';
-      panelUsers.style.display      = 'none';
+      if (menuCategories) menuCategories.classList.add('active');
+      if (panelCategories) panelCategories.style.display = 'block';
       renderCategoriesList();
     }
   };
@@ -350,6 +362,43 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (e.target.classList.contains('error')) window.setFieldError(e.target, null);
     });
   });
+
+  // ── Admin Creation Form submit ───────────────────────────
+  const adminForm = document.getElementById('admin-creation-form');
+  if (adminForm) {
+    adminForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      window.clearFormErrors(adminForm);
+
+      const nameEl     = document.getElementById('adm-name');
+      const emailEl    = document.getElementById('adm-email');
+      const passwordEl = document.getElementById('adm-password');
+      const confirmEl  = document.getElementById('adm-confirm');
+
+      let hasError = false;
+      if (!nameEl.value.trim()) { window.setFieldError(nameEl, 'Name is required.'); hasError = true; }
+      if (!emailEl.value.trim()) { window.setFieldError(emailEl, 'Email address is required.'); hasError = true; }
+      if (passwordEl.value.length < 6) { window.setFieldError(passwordEl, 'Password must be at least 6 characters.'); hasError = true; }
+      if (passwordEl.value !== confirmEl.value) { window.setFieldError(confirmEl, 'Passwords do not match.'); hasError = true; }
+
+      if (hasError) return;
+
+      try {
+        await window.db.createAdmin(emailEl.value.trim(), nameEl.value.trim(), passwordEl.value);
+        window.toastSuccess(`Administrator account for "${nameEl.value.trim()}" created successfully.`, 'Admin Created');
+        adminForm.reset();
+        users = await window.db.getUsersList();
+        renderUsersTable();
+        switchPanel('users');
+      } catch (err) {
+        window.toastError(err.message, 'Admin Registration Failed');
+      }
+    });
+
+    adminForm.addEventListener('input', (e) => {
+      if (e.target.classList.contains('error')) window.setFieldError(e.target, null);
+    });
+  }
 
   window.openModal  = (id) => document.getElementById(id).classList.add('active');
   window.closeModal = (id) => document.getElementById(id).classList.remove('active');

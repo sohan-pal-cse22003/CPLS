@@ -2,15 +2,19 @@ import {
   Controller,
   Post,
   Get,
+  Patch,
   Body,
   UseGuards,
   Req,
+  UseInterceptors,
 } from '@nestjs/common';
 import type { Request as ExpressRequest } from 'express';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
-import { RegisterDto, LoginDto } from '../dtos/auth.dto';
+import { RegisterDto, LoginDto, UpdateProfileDto } from '../dtos/auth.dto';
 import { UserResponse, LoginResponse } from '../types';
+import { UserSerializerInterceptor } from '../interceptors/user-serializer.interceptor';
+import { User } from '../entities/user.entity';
 
 @Controller('auth')
 export class AuthController {
@@ -47,5 +51,16 @@ export class AuthController {
   @Get('me')
   async getProfile(@Req() req: ExpressRequest): Promise<UserResponse> {
     return this.authService.getProfile(req);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('profile')
+  @UseInterceptors(UserSerializerInterceptor)
+  async updateProfile(
+    @Req() req: ExpressRequest,
+    @Body() updateDto: UpdateProfileDto,
+  ): Promise<UserResponse> {
+    const userId = (req.user as User).id;
+    return this.authService.updateProfile(userId, updateDto);
   }
 }

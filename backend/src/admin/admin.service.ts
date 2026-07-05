@@ -2,11 +2,14 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import * as argon2 from 'argon2';
 import { User } from '../entities/user.entity';
 import { Booking } from '../entities/booking.entity';
+import { CreateAdminDto } from '../dtos/admin.dto';
 
 @Injectable()
 export class AdminService {
@@ -83,5 +86,31 @@ export class AdminService {
       relations: { listings: true },
     });
     return users;
+  }
+
+  async createAdmin(createAdminDto: CreateAdminDto): Promise<User> {
+    const { email, name, password } = createAdminDto;
+    const emailLower = email.toLowerCase().trim();
+
+    const exists = await this.userRepository.findOne({
+      where: { email: emailLower },
+    });
+    if (exists) {
+      throw new ConflictException('Email already registered');
+    }
+
+    const hashedPassword = await argon2.hash(password);
+
+    const newAdmin = new User();
+    newAdmin.email = emailLower;
+    newAdmin.name = name.trim();
+    newAdmin.password = hashedPassword;
+    newAdmin.role = 'admin';
+    newAdmin.isApproved = true;
+    newAdmin.isBlocked = false;
+    newAdmin.online = false;
+    newAdmin.rating = 0;
+
+    return this.userRepository.save(newAdmin);
   }
 }

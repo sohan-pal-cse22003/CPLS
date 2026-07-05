@@ -2,11 +2,14 @@ import { Injectable, OnApplicationBootstrap, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as argon2 from 'argon2';
+import * as dotenv from 'dotenv';
 import { Category } from './entities/category.entity';
 import { Subcategory } from './entities/subcategory.entity';
 import { User } from './entities/user.entity';
 import { Listing } from './entities/listing.entity';
 import { SEED_CATEGORIES, SEED_PROVIDERS } from './constants/dummy-data';
+
+dotenv.config();
 
 @Injectable()
 export class AppService implements OnApplicationBootstrap {
@@ -21,7 +24,7 @@ export class AppService implements OnApplicationBootstrap {
     private userRepository: Repository<User>,
     @InjectRepository(Listing)
     private listingRepository: Repository<Listing>,
-  ) {}
+  ) { }
 
   getHello(): string {
     return 'CPLS Home Services API is running!';
@@ -70,14 +73,18 @@ export class AppService implements OnApplicationBootstrap {
     }
 
     // 2. Seed Users
-    const hashedPasswordAdmin = await argon2.hash('admin');
+    const adminEmail = process.env.ADMIN_EMAIL || '';
+    const adminName = process.env.ADMIN_NAME || '';
+    const adminPassword = process.env.ADMIN_PASSWORD || 'consumer';
+
+    const hashedPasswordAdmin = await argon2.hash(adminPassword);
     const hashedPasswordProvider = await argon2.hash('provider');
     const hashedPasswordConsumer = await argon2.hash('consumer');
 
     // Admin
     const admin = new User();
-    admin.email = 'admin@service.com';
-    admin.name = 'System Admin';
+    admin.email = adminEmail.toLowerCase().trim();
+    admin.name = adminName;
     admin.password = hashedPasswordAdmin;
     admin.role = 'admin';
     admin.isApproved = true;

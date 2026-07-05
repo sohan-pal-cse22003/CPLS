@@ -1,9 +1,10 @@
-import { Controller, Get, Patch, Param, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, UseGuards, UseInterceptors } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { UserSerializerInterceptor } from 'src/interceptors/user-serializer.interceptor';
+import { CreateAdminDto } from '../dtos/admin.dto';
 
 
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -21,6 +22,12 @@ export class AdminController {
   @UseInterceptors(UserSerializerInterceptor)
   async getUsers() {
     return this.adminService.getUsersList();
+  }
+
+  @Post('create-admin')
+  @UseInterceptors(UserSerializerInterceptor)
+  async createAdmin(@Body() createAdminDto: CreateAdminDto) {
+    return this.adminService.createAdmin(createAdminDto);
   }
 
   @Patch('providers/:providerId/approve')

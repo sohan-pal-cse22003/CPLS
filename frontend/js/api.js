@@ -86,6 +86,20 @@ class APIDatabase {
     window.location.href = 'index.html';
   }
 
+  async updateProfile(name, email, password = null) {
+    const body = { name, email };
+    if (password) body.password = password;
+
+    const updatedUser = await this.request('/auth/profile', {
+      method: 'PATCH',
+      body
+    });
+
+    // Update stored session user info
+    sessionStorage.setItem('ua_current_user', JSON.stringify(updatedUser));
+    return updatedUser;
+  }
+
   // CATEGORIES & SERVICES API
   async getCategories() {
     const list = await this.request('/categories');
@@ -241,6 +255,7 @@ window.renderLayout = function (activeLink = '') {
                 <div class="user-info" style="display: none; position: absolute; top: 65px; right: 20px; background: white; border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); padding: 15px; z-index: 150;" id="user-dropdown">
                   <h4 style="margin-bottom: 5px;">${currentUser.name}</h4>
                   <p style="text-transform: capitalize; margin-bottom: 12px; font-size:12px;">Role: ${currentUser.role}</p>
+                  <button class="btn btn-outline btn-sm btn-primary" onclick="openProfileEditModal()" style="width: 100%; margin-bottom: 8px;">Edit Profile</button>
                   <button class="btn btn-outline btn-sm btn-danger" onclick="window.db.logout()" style="width: 100%;">Logout</button>
                 </div>
               </div>
@@ -301,6 +316,9 @@ window.renderLayout = function (activeLink = '') {
               <div style="font-size:11px;color:var(--text-muted);text-transform:capitalize;">${currentUser.role}</div>
             </div>
           </div>
+          <button class="btn btn-outline btn-primary" onclick="openProfileEditModal()" style="width:100%;justify-content:center;margin-bottom:8px;margin-top:10px;">
+            <i class="fas fa-user-edit"></i> Edit Profile
+          </button>
           <button class="btn btn-outline btn-danger" onclick="window.db.logout()" style="width:100%;justify-content:center;">
             <i class="fas fa-sign-out-alt"></i> Log Out
           </button>
@@ -430,5 +448,112 @@ window.renderLayout = function (activeLink = '') {
     fa.rel = 'stylesheet';
     fa.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css';
     document.head.appendChild(fa);
+  }
+
+  // Inject Edit Profile Modal HTML (if logged in)
+  if (isLoggedIn && !document.getElementById('profile-edit-modal')) {
+    const modalHtml = `
+      <div class="modal-overlay" id="profile-edit-modal">
+        <div class="modal-container" style="max-width: 400px; text-align: left;">
+          <div class="modal-header">
+            <h3 class="modal-title">Edit Your Profile</h3>
+            <button class="modal-close" onclick="window.closeProfileEditModal()">&times;</button>
+          </div>
+          <div class="modal-body">
+            <form id="profile-edit-form">
+              <div class="form-group">
+                <label for="prof-name" class="form-label">Full Name</label>
+                <input type="text" id="prof-name" class="form-control" placeholder="Your Name" required>
+              </div>
+              <div class="form-group">
+                <label for="prof-email" class="form-label">Email Address</label>
+                <input type="email" id="prof-email" class="form-control" placeholder="name@example.com" required>
+              </div>
+              <div class="form-group">
+                <label for="prof-password" class="form-label">New Password (leave blank to keep current)</label>
+                <input type="password" id="prof-password" class="form-control" placeholder="••••••••">
+              </div>
+              <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">Save Profile</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    `;
+    const div = document.createElement('div');
+    div.innerHTML = modalHtml;
+    document.body.appendChild(div.firstElementChild);
+
+    // Modal control functions
+    window.openProfileEditModal = function () {
+      const user = window.db.getCurrentUser();
+      if (!user) return;
+      document.getElementById('prof-name').value = user.name;
+      document.getElementById('prof-email').value = user.email;
+      document.getElementById('prof-password').value = '';
+      
+      const form = document.getElementById('profile-edit-form');
+      if (window.clearFormErrors) window.clearFormErrors(form);
+      
+      document.getElementById('profile-edit-modal').classList.add('active');
+      
+      // Close dropdowns
+      const dropdown = document.getElementById('user-dropdown');
+      if (dropdown) dropdown.style.display = 'none';
+    };
+
+    window.closeProfileEditModal = function () {
+      document.getElementById('profile-edit-modal').classList.remove('active');
+    };
+
+    // Form submission logic
+    const profForm = document.getElementById('profile-edit-form');
+    profForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (window.clearFormErrors) window.clearFormErrors(profForm);
+
+      const nameVal = document.getElementById('prof-name').value.trim();
+      const emailVal = document.getElementById('prof-email').value.trim();
+      const passVal = document.getElementById('prof-password').value;
+
+      let hasError = false;
+      if (!nameVal) { window.setFieldError(document.getElementById('prof-name'), 'Name is required'); hasError = true; }
+      if (!emailVal) { window.setFieldError(document.getElementById('prof-email'), 'Email is required'); hasError = true; }
+      if (passVal && passVal.length < 6) { window.setFieldError(document.getElementById('prof-password'), 'Password must be at least 6 characters'); hasError = true; }
+
+      if (hasError) return;
+
+      try {
+        const updated = await window.db.updateProfile(nameVal, emailVal, passVal || null);
+        window.toastSuccess('Profile updated successfully!', 'Profile Saved');
+        window.closeProfileEditModal();
+
+        // Dynamically update active elements on current page
+        const sidebarName = document.getElementById('sidebar-name');
+        if (sidebarName) sidebarName.innerText = updated.name;
+
+        const welcomeMsg = document.getElementById('welcome-message');
+        if (welcomeMsg) {
+          if (welcomeMsg.innerText.includes('Welcome Back')) {
+            welcomeMsg.innerText = `Welcome Back, ${updated.name}!`;
+          } else if (welcomeMsg.innerText.includes('Welcome')) {
+            welcomeMsg.innerText = `Welcome, ${updated.name}!`;
+          }
+        }
+
+        const avatarEl = document.getElementById('sidebar-avatar');
+        if (avatarEl) avatarEl.innerText = updated.name.charAt(0).toUpperCase();
+
+        const headerAvatars = document.querySelectorAll('.user-avatar');
+        headerAvatars.forEach(av => {
+          av.innerText = updated.name.charAt(0).toUpperCase();
+        });
+      } catch (err) {
+        window.toastError(err.message, 'Update Failed');
+      }
+    });
+
+    profForm.addEventListener('input', (e) => {
+      if (e.target.classList.contains('error')) window.setFieldError(e.target, null);
+    });
   }
 };
