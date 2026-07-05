@@ -109,6 +109,24 @@ export class BookingService {
       );
     }
 
+    // Check if slot is already booked and confirmed by this provider
+    const existingConfirmedBooking = await this.bookingRepository
+      .createQueryBuilder('booking')
+      .leftJoin('booking.listing', 'listing')
+      .where('listing.provider_id = :providerId', { providerId })
+      .andWhere('booking.date = :date', { date })
+      .andWhere('booking.time = :time', { time })
+      .andWhere('booking.status IN (:...statuses)', {
+        statuses: ['accepted', 'in-progress', 'completed'],
+      })
+      .getOne();
+
+    if (existingConfirmedBooking) {
+      throw new BadRequestException(
+        'This time slot is already booked and confirmed by the provider.',
+      );
+    }
+
     const consumer = await this.userRepository.findOne({ where: { id: consumerId } });
     if (!consumer) {
       throw new NotFoundException('Consumer not found');
@@ -161,7 +179,7 @@ export class BookingService {
       .where('listing.provider_id = :providerId', { providerId })
       .andWhere('booking.date = :date', { date })
       .andWhere('booking.status IN (:...statuses)', {
-        statuses: ['pending', 'accepted', 'in-progress'],
+        statuses: ['accepted', 'in-progress', 'completed'],
       })
       .getMany();
 

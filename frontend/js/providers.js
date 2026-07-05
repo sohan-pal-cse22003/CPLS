@@ -129,6 +129,41 @@ document.addEventListener('DOMContentLoaded', async () => {
     openBookingModal(categoryId, subcatId, subcatName, providerId, providerName, price);
   };
 
+  // Dynamic slot availability fetcher
+  async function updateAvailableTimeSlots(providerId, dateStr) {
+    const timeSelect = document.getElementById('booking-time');
+    timeSelect.disabled = true;
+    timeSelect.innerHTML = `<option value="">Loading slots...</option>`;
+
+    try {
+      const bookedSlots = await window.db.getProviderBookedSlots(providerId, dateStr) || [];
+      const defaultSlots = [
+        { value: '09:00 AM', label: '09:00 AM – 11:00 AM' },
+        { value: '11:00 AM', label: '11:00 AM – 01:00 PM' },
+        { value: '01:00 PM', label: '01:00 PM – 03:00 PM' },
+        { value: '03:00 PM', label: '03:00 PM – 05:00 PM' },
+        { value: '05:00 PM', label: '05:00 PM – 07:00 PM' }
+      ];
+
+      let html = `<option value="">Select Time Slot</option>`;
+      defaultSlots.forEach(slot => {
+        const isBooked = bookedSlots.includes(slot.value);
+        if (isBooked) {
+          html += `<option value="${slot.value}" disabled style="color: var(--text-muted); text-decoration: line-through;">${slot.label} (Booked)</option>`;
+        } else {
+          html += `<option value="${slot.value}">${slot.label}</option>`;
+        }
+      });
+
+      timeSelect.innerHTML = html;
+      timeSelect.disabled = false;
+    } catch (err) {
+      console.error('Failed to load booked slots:', err);
+      timeSelect.innerHTML = `<option value="">Failed to load slots</option>`;
+      window.toastError('Could not fetch available slots. Please try again.', 'Error');
+    }
+  }
+
   // Open booking details modal
   function openBookingModal(catId, subId, subName, providerId, providerName, price) {
     document.getElementById('booking-category').value = catId;
@@ -150,14 +185,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('booking-time').value = '';
     document.getElementById('booking-address').value = '';
 
+    // Initially disable time select until date is chosen
+    const timeSelect = document.getElementById('booking-time');
+    timeSelect.disabled = true;
+    timeSelect.innerHTML = `<option value="">Choose a date first</option>`;
+
     // Initialize custom date picker
     const dpContainer = document.getElementById('booking-date-picker');
     dpContainer.innerHTML = '';
     window.bookingDatePicker = window.createDatePicker(dpContainer, {
       placeholder: 'Choose appointment date',
-      onChange: () => {
+      onChange: async (dateStr) => {
         const dpBtn = dpContainer.querySelector('.datepicker-input-btn');
         if (dpBtn) window.setFieldError(dpBtn, null);
+        
+        if (dateStr) {
+          await updateAvailableTimeSlots(providerId, dateStr);
+        } else {
+          timeSelect.disabled = true;
+          timeSelect.innerHTML = `<option value="">Choose a date first</option>`;
+        }
       }
     });
 
