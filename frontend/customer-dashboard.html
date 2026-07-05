@@ -12,6 +12,12 @@
 
 <body>
 
+  <!-- Mobile sidebar toggle -->
+  <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" aria-label="Open menu">
+    <i class="fas fa-bars"></i>
+  </button>
+  <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
   <!-- Dashboard Container -->
   <div class="dashboard-container">
 
@@ -86,7 +92,7 @@
       </div>
 
       <!-- Booking Lists Tabs -->
-      <div style="border-bottom: 2px solid var(--border); display: flex; gap: 20px; margin-bottom: 25px;">
+      <div style="border-bottom: 2px solid var(--border); display: flex; gap: 20px; margin-bottom: 25px;" class="dashboard-tabs">
         <h3 id="tab-active"
           style="padding-bottom: 12px; cursor: pointer; color: var(--primary); border-bottom: 2px solid var(--primary); font-size: 16px;">
           Active Bookings</h3>
@@ -142,6 +148,19 @@
   <script src="js/ui.js"></script>
   <script src="js/api.js"></script>
   <script src="js/customer.js"></script>
+  <script>
+    // Mobile sidebar toggle
+    (function () {
+      const btn      = document.getElementById('sidebar-toggle-btn');
+      const backdrop = document.getElementById('sidebar-backdrop');
+      const sidebar  = document.querySelector('.sidebar');
+      function open()  { sidebar.classList.add('open'); backdrop.classList.add('active'); btn.innerHTML = '<i class="fas fa-times"></i>'; }
+      function close() { sidebar.classList.remove('open'); backdrop.classList.remove('active'); btn.innerHTML = '<i class="fas fa-bars"></i>'; }
+      btn.addEventListener('click', () => sidebar.classList.contains('open') ? close() : open());
+      backdrop.addEventListener('click', close);
+      document.querySelectorAll('.sidebar-link').forEach(l => l.addEventListener('click', () => { if (window.innerWidth <= 992) close(); }));
+    })();
+  </script>
 </body>
 
 </html>

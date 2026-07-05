@@ -251,8 +251,65 @@ window.renderLayout = function (activeLink = '') {
               `
     }
         </div>
+
+        <!-- Hamburger button (mobile only) -->
+        <button class="nav-hamburger" id="nav-hamburger-btn" aria-label="Open navigation menu">
+          <i class="fas fa-bars"></i>
+        </button>
       </nav>
     </div>
+
+    <!-- Mobile nav overlay backdrop -->
+    <div class="nav-mobile-overlay" id="nav-mobile-overlay"></div>
+
+    <!-- Mobile nav drawer (slides in from right) -->
+    <nav class="nav-mobile-drawer" id="nav-mobile-drawer" aria-label="Mobile navigation">
+      <div class="nav-drawer-header">
+        <a href="index.html" class="logo" style="font-size:20px;">
+          <i class="fas fa-tools" style="color:var(--primary);"></i> CPLS
+        </a>
+        <button class="nav-drawer-close" id="nav-drawer-close-btn" aria-label="Close menu">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <a href="index.html" class="nav-drawer-link ${activeLink === 'home' ? 'active' : ''}">
+        <i class="fas fa-home"></i> Home
+      </a>
+
+      ${isLoggedIn && currentUser.role === 'consumer' ? `
+        <a href="customer-dashboard.html" class="nav-drawer-link ${activeLink === 'bookings' ? 'active' : ''}">
+          <i class="fas fa-calendar-alt"></i> My Bookings
+        </a>` : ''}
+      ${isLoggedIn && currentUser.role === 'provider' ? `
+        <a href="provider-dashboard.html" class="nav-drawer-link ${activeLink === 'bookings' ? 'active' : ''}">
+          <i class="fas fa-briefcase"></i> Jobs Board
+        </a>` : ''}
+      ${isLoggedIn && currentUser.role === 'admin' ? `
+        <a href="admin-dashboard.html" class="nav-drawer-link ${activeLink === 'admin' ? 'active' : ''}">
+          <i class="fas fa-shield-alt"></i> Admin Control
+        </a>` : ''}
+
+      <div class="nav-drawer-divider"></div>
+
+      <div class="nav-drawer-actions">
+        ${isLoggedIn ? `
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--light);border-radius:var(--radius-md);">
+            <div class="user-avatar" style="width:36px;height:36px;font-size:14px;">${currentUser.name.charAt(0).toUpperCase()}</div>
+            <div>
+              <div style="font-weight:700;font-size:14px;">${currentUser.name}</div>
+              <div style="font-size:11px;color:var(--text-muted);text-transform:capitalize;">${currentUser.role}</div>
+            </div>
+          </div>
+          <button class="btn btn-outline btn-danger" onclick="window.db.logout()" style="width:100%;justify-content:center;">
+            <i class="fas fa-sign-out-alt"></i> Log Out
+          </button>
+        ` : `
+          <a href="login.html" class="btn btn-outline" style="width:100%;justify-content:center;">Sign In</a>
+          <a href="login.html?register=true" class="btn btn-primary" style="width:100%;justify-content:center;">Become a Pro</a>
+        `}
+      </div>
+    </nav>
   `;
 
   const headerElem = document.createElement('header');
@@ -266,6 +323,32 @@ window.renderLayout = function (activeLink = '') {
     } else {
       headerElem.classList.remove('scrolled');
     }
+  });
+
+  // ── Mobile drawer toggle ──────────────────────────────────
+  const hamburgerBtn = document.getElementById('nav-hamburger-btn');
+  const mobileOverlay = document.getElementById('nav-mobile-overlay');
+  const mobileDrawer = document.getElementById('nav-mobile-drawer');
+  const drawerCloseBtn = document.getElementById('nav-drawer-close-btn');
+
+  function openNavDrawer() {
+    mobileDrawer.classList.add('open');
+    mobileOverlay.classList.add('active');
+    hamburgerBtn.setAttribute('aria-expanded', 'true');
+  }
+  function closeNavDrawer() {
+    mobileDrawer.classList.remove('open');
+    mobileOverlay.classList.remove('active');
+    hamburgerBtn.setAttribute('aria-expanded', 'false');
+  }
+
+  hamburgerBtn.addEventListener('click', openNavDrawer);
+  drawerCloseBtn.addEventListener('click', closeNavDrawer);
+  mobileOverlay.addEventListener('click', closeNavDrawer);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeNavDrawer(); });
+  // Close drawer on any link click inside
+  mobileDrawer.querySelectorAll('a, button').forEach(el => {
+    el.addEventListener('click', () => setTimeout(closeNavDrawer, 80));
   });
 
   // Toggle profile dropdown
