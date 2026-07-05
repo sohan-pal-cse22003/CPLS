@@ -147,9 +147,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             ? `<button class="btn btn-outline btn-sm" style="color:var(--warning);border-color:var(--warning);background:rgba(245,158,11,.05);" onclick="toggleApproval('${u.id}')">Suspend</button>`
             : `<button class="btn btn-primary btn-sm" onclick="toggleApproval('${u.id}')">Approve ✓</button>`;
           
-          actionButtons = `<div style="display:flex;gap:8px;">${approvalBtn}${blockBtn}</div>`;
+          actionButtons = `<div class="action-cell">${approvalBtn}${blockBtn}</div>`;
         } else {
-          actionButtons = blockBtn;
+          actionButtons = `<div class="action-cell">${blockBtn}</div>`;
         }
       }
 
@@ -217,28 +217,63 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // ── Toggle Provider Approval ──────────────────────────────
   window.toggleApproval = async (providerId) => {
-    try {
-      const updated = await window.db.toggleProviderApproval(providerId);
-      if (updated.isApproved) {
-        window.toastSuccess(`${updated.name}'s provider profile has been approved and activated.`, 'Provider Approved ✅');
+    // Optimistic update: flip the flag locally and re-render immediately
+    const userIdx = users.findIndex(u => u.id === providerId);
+    if (userIdx !== -1) {
+      users[userIdx].isApproved = !users[userIdx].isApproved;
+      const optimisticUser = users[userIdx];
+      renderUsersTable();
+      if (optimisticUser.isApproved) {
+        window.toastSuccess(`${optimisticUser.name}'s provider profile has been approved and activated.`, 'Provider Approved ✅');
       } else {
-        window.toastWarning(`${updated.name}'s account has been suspended.`, 'Account Suspended');
+        window.toastWarning(`${optimisticUser.name}'s account has been suspended.`, 'Account Suspended');
       }
-      loadDashboard();
-    } catch (err) { window.toastError(err.message, 'Action Failed'); }
+    }
+
+    // Sync with backend in the background (no await on full reload)
+    try {
+      await window.db.toggleProviderApproval(providerId);
+      // Silently refresh stats in background without blocking UI
+      window.db.getAdminStats().then(stats => {
+        document.getElementById('stat-providers').innerText = stats.totalProviders;
+        document.getElementById('stat-pending').innerText   = stats.pendingProviders;
+      }).catch(() => {});
+    } catch (err) {
+      // Rollback optimistic update on failure
+      if (userIdx !== -1) {
+        users[userIdx].isApproved = !users[userIdx].isApproved;
+        renderUsersTable();
+      }
+      window.toastError(err.message, 'Action Failed');
+    }
   };
 
   // ── Toggle User Block ─────────────────────────────────────
   window.toggleBlock = async (userId) => {
-    try {
-      const updated = await window.db.toggleUserBlock(userId);
-      if (updated.isBlocked) {
-        window.toastWarning(`${updated.name} has been blocked and cannot access their account.`, 'User Blocked 🛑');
+    // Optimistic update: flip the flag locally and re-render immediately
+    const userIdx = users.findIndex(u => u.id === userId);
+    if (userIdx !== -1) {
+      users[userIdx].isBlocked = !users[userIdx].isBlocked;
+      const optimisticUser = users[userIdx];
+      renderUsersTable();
+      if (optimisticUser.isBlocked) {
+        window.toastWarning(`${optimisticUser.name} has been blocked and cannot access their account.`, 'User Blocked 🛑');
       } else {
-        window.toastSuccess(`${updated.name} has been unblocked and can now access their account.`, 'User Unblocked 🟢');
+        window.toastSuccess(`${optimisticUser.name} has been unblocked and can now access their account.`, 'User Unblocked 🟢');
       }
-      loadDashboard();
-    } catch (err) { window.toastError(err.message, 'Action Failed'); }
+    }
+
+    // Sync with backend in background
+    try {
+      await window.db.toggleUserBlock(userId);
+    } catch (err) {
+      // Rollback optimistic update on failure
+      if (userIdx !== -1) {
+        users[userIdx].isBlocked = !users[userIdx].isBlocked;
+        renderUsersTable();
+      }
+      window.toastError(err.message, 'Action Failed');
+    }
   };
 
   // ── Add Subcategory Modal ─────────────────────────────────
