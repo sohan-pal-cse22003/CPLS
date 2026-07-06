@@ -6,83 +6,81 @@
    ============================================= */
 
 // ─── TOAST SYSTEM ───────────────────────────────────────────────
-(function () {
-  // Inject container once
-  function ensureContainer() {
-    if (!document.getElementById('toast-container')) {
-      const el = document.createElement('div');
-      el.id = 'toast-container';
-      document.body.appendChild(el);
-    }
-    return document.getElementById('toast-container');
+// Inject container once
+function ensureContainer() {
+  if (!document.getElementById('toast-container')) {
+    const el = document.createElement('div');
+    el.id = 'toast-container';
+    document.body.appendChild(el);
   }
+  return document.getElementById('toast-container');
+}
 
-  const ICONS = {
-    success: 'fas fa-check-circle',
-    error:   'fas fa-times-circle',
-    warning: 'fas fa-exclamation-triangle',
-    info:    'fas fa-info-circle',
-  };
+const ICONS = {
+  success: 'fas fa-check-circle',
+  error:   'fas fa-times-circle',
+  warning: 'fas fa-exclamation-triangle',
+  info:    'fas fa-info-circle',
+};
 
-  const TITLES = {
-    success: 'Success',
-    error:   'Error',
-    warning: 'Warning',
-    info:    'Info',
-  };
+const TITLES = {
+  success: 'Success',
+  error:   'Error',
+  warning: 'Warning',
+  info:    'Info',
+};
 
-  /**
-   * Show a toast notification.
-   * @param {string} message - Body message
-   * @param {'success'|'error'|'warning'|'info'} type
-   * @param {string} [title]  - Override default title
-   * @param {number} [duration] - ms before auto-dismiss (default 4000)
-   */
-  window.showToast = function (message, type = 'info', title = '', duration = 4000) {
-    const container = ensureContainer();
+/**
+ * Show a toast notification.
+ * @param {string} message - Body message
+ * @param {'success'|'error'|'warning'|'info'} type
+ * @param {string} [title]  - Override default title
+ * @param {number} [duration] - ms before auto-dismiss (default 4000)
+ */
+const showToast = function (message, type = 'info', title = '', duration = 4000) {
+  const container = ensureContainer();
 
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
 
-    const iconClass = ICONS[type] || ICONS.info;
-    const titleText = title || TITLES[type] || 'Notification';
+  const iconClass = ICONS[type] || ICONS.info;
+  const titleText = title || TITLES[type] || 'Notification';
 
-    toast.innerHTML = `
-      <i class="${iconClass} toast-icon"></i>
-      <div class="toast-body">
-        <div class="toast-title">${titleText}</div>
-        <div class="toast-message">${message}</div>
-      </div>
-      <button class="toast-close" aria-label="Close"><i class="fas fa-times"></i></button>
-      <div class="toast-progress" style="animation-duration:${duration}ms"></div>
-    `;
+  toast.innerHTML = `
+    <i class="${iconClass} toast-icon"></i>
+    <div class="toast-body">
+      <div class="toast-title">${titleText}</div>
+      <div class="toast-message">${message}</div>
+    </div>
+    <button class="toast-close" aria-label="Close"><i class="fas fa-times"></i></button>
+    <div class="toast-progress" style="animation-duration:${duration}ms"></div>
+  `;
 
-    // Close button
-    toast.querySelector('.toast-close').addEventListener('click', () => dismissToast(toast));
+  // Close button
+  toast.querySelector('.toast-close').addEventListener('click', () => dismissToast(toast));
 
-    container.appendChild(toast);
+  container.appendChild(toast);
 
-    // Auto-dismiss
-    const timer = setTimeout(() => dismissToast(toast), duration);
-    toast._timer = timer;
+  // Auto-dismiss
+  const timer = setTimeout(() => dismissToast(toast), duration);
+  toast._timer = timer;
 
-    return toast;
-  };
+  return toast;
+};
 
-  function dismissToast(toast) {
-    if (toast._dismissed) return;
-    toast._dismissed = true;
-    clearTimeout(toast._timer);
-    toast.classList.add('toast-exit');
-    toast.addEventListener('animationend', () => toast.remove(), { once: true });
-  }
+function dismissToast(toast) {
+  if (toast._dismissed) return;
+  toast._dismissed = true;
+  clearTimeout(toast._timer);
+  toast.classList.add('toast-exit');
+  toast.addEventListener('animationend', () => toast.remove(), { once: true });
+}
 
-  // Convenience shorthands
-  window.toastSuccess = (msg, title) => window.showToast(msg, 'success', title);
-  window.toastError   = (msg, title) => window.showToast(msg, 'error',   title);
-  window.toastWarning = (msg, title) => window.showToast(msg, 'warning', title);
-  window.toastInfo    = (msg, title) => window.showToast(msg, 'info',    title);
-})();
+// Convenience shorthands
+const toastSuccess = (msg, title) => showToast(msg, 'success', title);
+const toastError   = (msg, title) => showToast(msg, 'error',   title);
+const toastWarning = (msg, title) => showToast(msg, 'warning', title);
+const toastInfo    = (msg, title) => showToast(msg, 'info',    title);
 
 
 // ─── INLINE FIELD VALIDATION HELPER ─────────────────────────────
@@ -91,7 +89,7 @@
  * @param {HTMLElement} fieldEl  - The input / button element
  * @param {string|null} message  - Error message. null = clear error.
  */
-window.setFieldError = function (fieldEl, message) {
+const setFieldError = function (fieldEl, message) {
   // Remove existing error sibling
   const existingErr = fieldEl.parentNode.querySelector('.field-error');
   if (existingErr) existingErr.remove();
@@ -109,7 +107,7 @@ window.setFieldError = function (fieldEl, message) {
 /**
  * Mark a field as valid (green border).
  */
-window.setFieldValid = function (fieldEl) {
+const setFieldValid = function (fieldEl) {
   const existingErr = fieldEl.parentNode.querySelector('.field-error');
   if (existingErr) existingErr.remove();
   fieldEl.classList.remove('error');
@@ -119,7 +117,7 @@ window.setFieldValid = function (fieldEl) {
 /**
  * Clear all validation states in a form.
  */
-window.clearFormErrors = function (formEl) {
+const clearFormErrors = function (formEl) {
   formEl.querySelectorAll('.field-error').forEach(el => el.remove());
   formEl.querySelectorAll('.error, .success').forEach(el => {
     el.classList.remove('error', 'success');
@@ -143,7 +141,7 @@ window.clearFormErrors = function (formEl) {
  * @param {string|HTMLElement} containerSel
  * @param {{ onChange, placeholder, minDate, maxDate }} options
  */
-window.createDatePicker = function (containerSel, options = {}) {
+const createDatePicker = function (containerSel, options = {}) {
   const container = typeof containerSel === 'string'
     ? document.querySelector(containerSel)
     : containerSel;

@@ -32,7 +32,7 @@ export class RegisterDto {
   @IsString()
   @MinLength(8, { message: 'Password must be at least 8 characters' })
   @IsStrongPassword({ minLowercase: 1, minUppercase: 1, minNumbers: 1, minSymbols: 1 }, {
-    message: 'Password must contain 1 lower 1 upper case and 1 symbol'
+    message: 'Password must contain 1 lower 1 upper case letter and 1 symbol and 1 number'
   })
   password: string;
 
@@ -68,6 +68,9 @@ export class UpdateProfileDto {
 
   @IsString()
   @IsOptional()
-  @MinLength(6, { message: 'Password must be at least 6 characters' })
+  @MinLength(8, { message: 'Password must be at least 8 characters' })
+  @IsStrongPassword({ minLowercase: 1, minUppercase: 1, minNumbers: 1, minSymbols: 1 }, {
+    message: 'Password must contain 1 lower 1 upper case letter and 1 symbol and 1 number'
+  })
   password?: string;
 }

@@ -29,7 +29,7 @@
         <div><strong>Expertise:</strong> <span id="app-category">Plumbing</span></div>
         <div><strong>Status:</strong> <span class="badge badge-pending">Awaiting Review</span></div>
       </div>
-      <button class="btn btn-outline" style="width: 100%;" onclick="window.db.logout()">Log Out</button>
+      <button class="btn btn-outline" style="width: 100%;" onclick="logout()">Log Out</button>
     </div>
   </div>
 
@@ -81,10 +81,10 @@
           </div>
         </div>
         <div class="sidebar-user-actions">
-          <button class="sidebar-action-btn" onclick="window.openProfileEditModal()">
+          <button class="sidebar-action-btn" onclick="openProfileEditModal()">
             <i class="fas fa-user-edit"></i> Edit Profile
           </button>
-          <button class="sidebar-action-btn sidebar-action-danger" onclick="window.db.logout()">
+          <button class="sidebar-action-btn sidebar-action-danger" onclick="logout()">
             <i class="fas fa-sign-out-alt"></i> Log Out
           </button>
         </div>

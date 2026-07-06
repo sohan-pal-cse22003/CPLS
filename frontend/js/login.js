@@ -17,49 +17,49 @@ document.addEventListener('DOMContentLoaded', () => {
   const providerServicesCheckboxes = document.getElementById('provider-services-checkboxes');
 
   // Field refs
-  const emailEl     = document.getElementById('auth-email');
-  const passwordEl  = document.getElementById('auth-password');
-  const nameEl      = document.getElementById('auth-name');
-  const confirmEl   = document.getElementById('auth-confirm-password');
+  const emailEl    = document.getElementById('auth-email');
+  const passwordEl = document.getElementById('auth-password');
+  const nameEl     = document.getElementById('auth-name');
+  const confirmEl  = document.getElementById('auth-confirm-password');
 
   // Populate provider services checklist dynamically
   async function populateServicesCheckboxes() {
     if (!providerServicesCheckboxes) return;
     try {
-      const categories = await window.db.getCategories();
+      const categories = await getCategories();
       providerServicesCheckboxes.innerHTML = '';
-      
+
       Object.values(categories).forEach(cat => {
         const catHeader = document.createElement('div');
-        catHeader.style.fontWeight = '700';
-        catHeader.style.fontSize = '12px';
-        catHeader.style.color = 'var(--primary)';
-        catHeader.style.marginTop = '8px';
-        catHeader.style.textTransform = 'uppercase';
-        catHeader.style.letterSpacing = '0.5px';
+        catHeader.style.fontWeight     = '700';
+        catHeader.style.fontSize       = '12px';
+        catHeader.style.color          = 'var(--primary)';
+        catHeader.style.marginTop      = '8px';
+        catHeader.style.textTransform  = 'uppercase';
+        catHeader.style.letterSpacing  = '0.5px';
         catHeader.innerHTML = `<i class="fas ${cat.icon}"></i> ${cat.name}`;
         providerServicesCheckboxes.appendChild(catHeader);
 
         cat.subcategories.forEach(sub => {
           const itemDiv = document.createElement('div');
-          itemDiv.style.display = 'flex';
-          itemDiv.style.alignItems = 'center';
+          itemDiv.style.display        = 'flex';
+          itemDiv.style.alignItems     = 'center';
           itemDiv.style.justifyContent = 'space-between';
-          itemDiv.style.padding = '8px 12px';
-          itemDiv.style.border = '1px solid var(--border)';
-          itemDiv.style.borderRadius = 'var(--radius-sm)';
-          itemDiv.style.background = 'var(--light)';
-
+          itemDiv.style.padding        = '8px 12px';
+          itemDiv.style.border         = '1px solid var(--border)';
+          itemDiv.style.borderRadius   = 'var(--radius-sm)';
+          itemDiv.style.background     = 'var(--light)';
           itemDiv.innerHTML = `
-            <label class="form-checkbox" style="font-weight: 500; font-size: 13px; margin: 0; flex: 1; display: flex; align-items: center; gap: 8px; cursor: pointer;">
-              <input type="checkbox" name="provider-service" value="${sub.id}" style="width: 16px; height: 16px; cursor: pointer;" onchange="const p = document.getElementById('reg-price-${sub.id}'); p.disabled = !this.checked; if(!this.checked) p.value=''">
-              <span>${sub.name} <span style="color: var(--text-muted); font-size: 11px;">(Base: ₹${sub.price})</span></span>
+            <label class="form-checkbox" style="font-weight:500;font-size:13px;margin:0;flex:1;display:flex;align-items:center;gap:8px;cursor:pointer;">
+              <input type="checkbox" name="provider-service" value="${sub.id}" style="width:16px;height:16px;cursor:pointer;"
+                onchange="const p=document.getElementById('reg-price-${sub.id}');p.disabled=!this.checked;if(!this.checked)p.value=''">
+              <span>${sub.name} <span style="color:var(--text-muted);font-size:11px;">(Base: ₹${sub.price})</span></span>
             </label>
-            <div style="display: flex; align-items: center; gap: 5px;">
-              <span style="font-size: 12px; color: var(--text-muted);">₹</span>
-              <input type="number" id="reg-price-${sub.id}" class="form-control" placeholder="${sub.price}" disabled style="width: 80px; padding: 4px 6px; font-size: 12px; height: auto; margin: 0;" min="1">
-            </div>
-          `;
+            <div style="display:flex;align-items:center;gap:5px;">
+              <span style="font-size:12px;color:var(--text-muted);">₹</span>
+              <input type="number" id="reg-price-${sub.id}" class="form-control" placeholder="${sub.price}" disabled
+                style="width:80px;padding:4px 6px;font-size:12px;height:auto;margin:0;" min="1">
+            </div>`;
           providerServicesCheckboxes.appendChild(itemDiv);
         });
       });
@@ -78,7 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Clear errors when checkboxes change
   if (providerServicesCheckboxes) {
     providerServicesCheckboxes.addEventListener('change', () => {
-      window.setFieldError(providerServicesCheckboxes, null);
+      setFieldError(providerServicesCheckboxes, null);
     });
   }
 
@@ -99,17 +99,12 @@ document.addEventListener('DOMContentLoaded', () => {
     roleOptions.forEach(o => o.classList.remove('active'));
     const el = document.getElementById(`role-${role}`);
     if (el) el.classList.add('active');
-
-    if (role === 'provider') {
-      providerFields.style.display = 'block';
-    } else {
-      providerFields.style.display = 'none';
-    }
+    providerFields.style.display = role === 'provider' ? 'block' : 'none';
   }
 
   function toggleMode(toLogin) {
     isLoginMode = toLogin;
-    window.clearFormErrors(authForm);
+    clearFormErrors(authForm);
 
     if (isLoginMode) {
       authTitle.innerText    = 'Welcome Back';
@@ -138,32 +133,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── Clear inline errors on typing ─────────────────────────
   authForm.addEventListener('input', (e) => {
-    if (e.target.classList.contains('error')) {
-      window.setFieldError(e.target, null);
-    }
+    if (e.target.classList.contains('error')) setFieldError(e.target, null);
   });
 
   // ── Form Submit ────────────────────────────────────────────
   authForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    window.clearFormErrors(authForm);
+    clearFormErrors(authForm);
 
     const email    = emailEl.value.trim();
     const password = passwordEl.value;
 
-    // Basic inline validation
     let hasError = false;
 
     if (!email) {
-      window.setFieldError(emailEl, 'Email address is required.');
+      setFieldError(emailEl, 'Email address is required.');
       hasError = true;
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      window.setFieldError(emailEl, 'Please enter a valid email address.');
+      setFieldError(emailEl, 'Please enter a valid email address.');
       hasError = true;
     }
 
     if (!password) {
-      window.setFieldError(passwordEl, 'Password cannot be empty.');
+      setFieldError(passwordEl, 'Password cannot be empty.');
       hasError = true;
     }
 
@@ -172,27 +164,27 @@ document.addEventListener('DOMContentLoaded', () => {
       const confirm = confirmEl.value;
 
       if (!name) {
-        window.setFieldError(nameEl, 'Full name is required.');
+        setFieldError(nameEl, 'Full name is required.');
         hasError = true;
       }
 
-      if (password && password.length < 6) {
-        window.setFieldError(passwordEl, 'Password must be at least 6 characters.');
+      if (password && password.length < 8) {
+        setFieldError(passwordEl, 'Password must be at least 8 characters.');
         hasError = true;
       }
 
       if (!confirm) {
-        window.setFieldError(confirmEl, 'Please confirm your password.');
+        setFieldError(confirmEl, 'Please confirm your password.');
         hasError = true;
       } else if (password !== confirm) {
-        window.setFieldError(confirmEl, 'Passwords do not match.');
+        setFieldError(confirmEl, 'Passwords do not match.');
         hasError = true;
       }
 
       if (selectedRole === 'provider') {
         const checked = authForm.querySelectorAll('input[name="provider-service"]:checked');
         if (checked.length === 0) {
-          window.setFieldError(providerServicesCheckboxes, 'Please select at least one service you can provide.');
+          setFieldError(providerServicesCheckboxes, 'Please select at least one service you can provide.');
           hasError = true;
         }
       }
@@ -200,53 +192,73 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (hasError) return;
 
-    // Lock button with spinner while request is in-flight
-    window.setButtonLoading(submitBtn, isLoginMode ? 'Signing In…' : 'Creating Account…');
+    setButtonLoading(submitBtn, isLoginMode ? 'Signing In…' : 'Creating Account…');
 
     try {
       if (isLoginMode) {
-        // LOGIN
-        const res  = await window.db.login(email, password);
-        window.toastSuccess(`Welcome back, ${res.user.name}!`, 'Login Successful');
+        const res = await login(email, password);
+        toastSuccess(`Welcome back, ${res.user.name}!`, 'Login Successful');
         setTimeout(() => redirectUser(res.user), 900);
       } else {
-        // REGISTER
-        const name     = nameEl.value.trim();
+        const name = nameEl.value.trim();
         let services = [];
         if (selectedRole === 'provider') {
           const checked = authForm.querySelectorAll('input[name="provider-service"]:checked');
           services = Array.from(checked).map(c => {
-            const subcatId = c.value;
-            const priceEl = document.getElementById(`reg-price-${subcatId}`);
+            const priceEl  = document.getElementById(`reg-price-${c.value}`);
             const priceVal = priceEl && priceEl.value ? Number(priceEl.value) : null;
-            return { id: subcatId, price: priceVal };
+            return { id: c.value, price: priceVal };
           });
         }
-        const res      = await window.db.register(email, name, password, selectedRole, services);
+        const res = await register(email, name, password, selectedRole, services);
 
         if (selectedRole === 'provider') {
-          window.toastInfo(
+          toastInfo(
             'Registration successful! Your provider profile will be activated after admin review. You can sign in below.',
             'Pending Approval'
           );
           setTimeout(() => toggleMode(true), 2500);
         } else {
-          window.toastSuccess(`Account created! Welcome, ${name}!`, 'Registration Successful 🎉');
+          toastSuccess(`Account created! Welcome, ${name}!`, 'Registration Successful 🎉');
           setTimeout(() => redirectUser(res.user), 1000);
         }
       }
     } catch (error) {
-      window.toastError(error.message, isLoginMode ? 'Login Failed' : 'Registration Failed');
-      window.resetButton(submitBtn);
+      if (error.messages && Array.isArray(error.messages)) {
+        let genericErrors = [];
+        error.messages.forEach(msg => {
+          const lowerMsg = msg.toLowerCase();
+          if (lowerMsg.includes('invalid email or password')) {
+            setFieldError(emailEl, msg);
+            setFieldError(passwordEl, msg);
+          } else if (lowerMsg.includes('email')) {
+            setFieldError(emailEl, msg);
+          } else if (lowerMsg.includes('password')) {
+            setFieldError(passwordEl, msg);
+          } else if (lowerMsg.includes('name')) {
+            setFieldError(nameEl, msg);
+          } else {
+            genericErrors.push(msg);
+          }
+        });
+        if (genericErrors.length > 0) {
+          toastError(genericErrors.join(', '), isLoginMode ? 'Login Failed' : 'Registration Failed');
+        } else {
+          toastError('Please check the form for errors.', isLoginMode ? 'Login Failed' : 'Registration Failed');
+        }
+      } else {
+        toastError(error.message, isLoginMode ? 'Login Failed' : 'Registration Failed');
+      }
+      resetButton(submitBtn);
     }
   });
 
   // ── Route user after auth ──────────────────────────────────
   function redirectUser(user) {
     const returnUrl = urlParams.get('return');
-    if (returnUrl) { window.location.href = returnUrl; return; }
-    if (user.role === 'admin')    { window.location.href = 'admin-dashboard.html'; return; }
-    if (user.role === 'provider') { window.location.href = 'provider-dashboard.html'; return; }
+    if (returnUrl)                { window.location.href = returnUrl;                    return; }
+    if (user.role === 'admin')    { window.location.href = 'admin-dashboard.html';       return; }
+    if (user.role === 'provider') { window.location.href = 'provider-dashboard.html';    return; }
     window.location.href = 'customer-dashboard.html';
   }
 });

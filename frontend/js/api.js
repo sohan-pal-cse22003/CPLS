@@ -1,221 +1,223 @@
 const BASE_URL = 'https://cpls.onrender.com'; // Global base URL constant
 
-class APIDatabase {
-  constructor() {
-    this.categoriesCache = {};
-    // Prefetch categories to populate cache for synchronous callers
-    this.getCategories().catch(() => { });
+let categoriesCache = {};
+
+// Helper to construct headers with JWT token
+function getHeaders() {
+  const headers = {
+    'Content-Type': 'application/json'
+  };
+  const token = sessionStorage.getItem('ua_token');
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
   }
-
-  // Helpers
-  getData(key) {
-    if (key === 'ua_categories') {
-      return this.categoriesCache || {};
-    }
-    return null;
-  }
-
-  // Helper to construct headers with JWT token
-  getHeaders() {
-    const headers = {
-      'Content-Type': 'application/json'
-    };
-    const token = sessionStorage.getItem('ua_token');
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-    return headers;
-  }
-
-  // Network handler wrapper to simplify requests
-  async request(path, options = {}) {
-    options.headers = {
-      ...this.getHeaders(),
-      ...options.headers
-    };
-    if (options.body && typeof options.body === 'object') {
-      options.body = JSON.stringify(options.body);
-    }
-
-    const res = await fetch(`${BASE_URL}${path}`, options);
-    if (!res.ok) {
-      const errorData = await res.json().catch(() => ({}));
-      throw new Error(errorData.message || `Request failed with status ${res.status}`);
-    }
-    return res.json();
-  }
-
-  // AUTH API
-  async login(email, password) {
-    const res = await this.request('/auth/login', {
-      method: 'POST',
-      body: { email, password }
-    });
-
-    if (res.success) {
-      sessionStorage.setItem('ua_token', res.accessToken);
-      sessionStorage.setItem('ua_current_user', JSON.stringify(res.user));
-    }
-    return res;
-  }
-
-  async register(email, name, password, role, services = []) {
-    const res = await this.request('/auth/register', {
-      method: 'POST',
-      body: { email, name, password, role, services }
-    });
-
-    // Automatically log in if Consumer
-    if (role === 'consumer') {
-      // Login automatically by requesting token
-      const loginRes = await this.login(email, password);
-      return loginRes;
-    }
-
-    return { success: true, user: res };
-  }
-
-  getCurrentUser() {
-    const sessionUser = JSON.parse(sessionStorage.getItem('ua_current_user'));
-    return sessionUser;
-  }
-
-  logout() {
-    sessionStorage.removeItem('ua_token');
-    sessionStorage.removeItem('ua_current_user');
-    window.location.href = 'index.html';
-  }
-
-  async updateProfile(name, email, password = null) {
-    const body = { name, email };
-    if (password) body.password = password;
-
-    const updatedUser = await this.request('/auth/profile', {
-      method: 'PATCH',
-      body
-    });
-
-    // Update stored session user info
-    sessionStorage.setItem('ua_current_user', JSON.stringify(updatedUser));
-    return updatedUser;
-  }
-
-  // CATEGORIES & SERVICES API
-  async getCategories() {
-    const list = await this.request('/categories');
-    // Transform array into object keyed by category ID to match frontend expectation
-    const categoriesObj = {};
-    list.forEach(cat => {
-      categoriesObj[cat.id] = cat;
-    });
-    this.categoriesCache = categoriesObj;
-    return categoriesObj;
-  }
-
-  async addCategory(id, name, icon, description) {
-    return this.request('/categories', {
-      method: 'POST',
-      body: { id, name, icon, description }
-    });
-  }
-
-  async addSubcategory(categoryId, subcatName, price, time, description) {
-    return this.request(`/categories/${categoryId}/subcategories`, {
-      method: 'POST',
-      body: { name: subcatName, price, time, description }
-    });
-  }
-
-  // SEARCH AND AUTO-SUGGESTIONS API
-  async getSearchSuggestions(query) {
-    return this.request(`/categories/suggestions?query=${encodeURIComponent(query)}`);
-  }
-
-  // BOOKINGS API
-  async getBookings() {
-    return this.request('/bookings');
-  }
-
-  async getProvidersForService(subcatId) {
-    return this.request(`/listings/providers?subcatId=${subcatId}`);
-  }
-
-  async createBooking(category, subcategoryId, providerId, price, date, time, address) {
-    return this.request('/bookings', {
-      method: 'POST',
-      body: { category, subcategoryId, providerId, price, date, time, address }
-    });
-  }
-
-  async getProviderBookedSlots(providerId, date) {
-    return this.request(`/bookings/slots?providerId=${providerId}&date=${date}`);
-  }
-
-  async updateBookingStatus(bookingId, status, enteredOtp = '') {
-    return this.request(`/bookings/${bookingId}/status`, {
-      method: 'PATCH',
-      body: { status, enteredOtp }
-    });
-  }
-
-  async rateBooking(bookingId, rating, comment) {
-    return this.request(`/bookings/${bookingId}/rate`, {
-      method: 'POST',
-      body: { rating, comment }
-    });
-  }
-
-  // ADMIN OPERATIONS API
-  async getAdminStats() {
-    return this.request('/admin/stats');
-  }
-
-  async toggleProviderApproval(providerId) {
-    return this.request(`/admin/providers/${providerId}/approve`, {
-      method: 'PATCH'
-    });
-  }
-
-  async toggleProviderStatus(providerId) {
-    const res = await this.request('/listings/me/status', {
-      method: 'PATCH'
-    });
-    // Update stored session user's online status
-    const user = this.getCurrentUser();
-    if (user && user.id === providerId) {
-      user.online = res.online;
-      sessionStorage.setItem('ua_current_user', JSON.stringify(user));
-    }
-    return res;
-  }
-
-  async toggleUserBlock(userId) {
-    return this.request(`/admin/users/${userId}/block`, {
-      method: 'PATCH'
-    });
-  }
-
-  async updateProviderServices(providerId, services) {
-    const res = await this.request('/listings/me/catalog', {
-      method: 'PATCH',
-      body: { services }
-    });
-    // Update stored session user's listings/services catalog
-    const user = this.getCurrentUser();
-    if (user && user.id === providerId) {
-      user.services = res.listings ? res.listings.map(l => ({ id: l.subcat_id, price: Number(l.price) })) : [];
-      sessionStorage.setItem('ua_current_user', JSON.stringify(user));
-    }
-    return user;
-  }
-
-  async getUsersList() {
-    return this.request('/admin/users');
-  }
+  return headers;
 }
 
-// Instantiate db global variable
-window.db = new APIDatabase();
+// Network handler wrapper to simplify requests
+async function request(path, options = {}) {
+  options.headers = {
+    ...getHeaders(),
+    ...options.headers
+  };
+  if (options.body && typeof options.body === 'object') {
+    options.body = JSON.stringify(options.body);
+  }
+
+  const res = await fetch(`${BASE_URL}${path}`, options);
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    // NestJS validation errors come as { message: string[] }
+    // We preserve both: messages (array) for field-level mapping, message (string) for toasts.
+    const err = new Error(
+      Array.isArray(errorData.message)
+        ? errorData.message.join(', ')
+        : (errorData.message || `Request failed with status ${res.status}`)
+    );
+    err.messages = Array.isArray(errorData.message) ? errorData.message : [];
+    throw err;
+  }
+  return res.json();
+}
+
+const getData = function (key) {
+  if (key === 'ua_categories') {
+    return categoriesCache || {};
+  }
+  return null;
+};
+
+// Global API functions
+const getCurrentUser = function () {
+  return JSON.parse(sessionStorage.getItem('ua_current_user'));
+};
+
+const logout = function () {
+  sessionStorage.removeItem('ua_token');
+  sessionStorage.removeItem('ua_current_user');
+  window.location.href = 'index.html';
+};
+
+const login = async function (email, password) {
+  const res = await request('/auth/login', {
+    method: 'POST',
+    body: { email, password }
+  });
+
+  if (res.success) {
+    sessionStorage.setItem('ua_token', res.accessToken);
+    sessionStorage.setItem('ua_current_user', JSON.stringify(res.user));
+  }
+  return res;
+};
+
+const register = async function (email, name, password, role, services = []) {
+  const res = await request('/auth/register', {
+    method: 'POST',
+    body: { email, name, password, role, services }
+  });
+
+  // Automatically log in if Consumer
+  if (role === 'consumer') {
+    const loginRes = await login(email, password);
+    return loginRes;
+  }
+
+  return { success: true, user: res };
+};
+
+const updateProfile = async function (name, email, password = null) {
+  const body = { name, email };
+  if (password) body.password = password;
+
+  const updatedUser = await request('/auth/profile', {
+    method: 'PATCH',
+    body
+  });
+
+  // Update stored session user info
+  sessionStorage.setItem('ua_current_user', JSON.stringify(updatedUser));
+  return updatedUser;
+};
+
+const getCategories = async function () {
+  const list = await request('/categories');
+  // Transform array into object keyed by category ID to match frontend expectation
+  const categoriesObj = {};
+  list.forEach(cat => {
+    categoriesObj[cat.id] = cat;
+  });
+  categoriesCache = categoriesObj;
+  return categoriesObj;
+};
+
+const addCategory = async function (id, name, icon, description) {
+  return request('/categories', {
+    method: 'POST',
+    body: { id, name, icon, description }
+  });
+};
+
+const addSubcategory = async function (categoryId, subcatName, price, time, description) {
+  return request(`/categories/${categoryId}/subcategories`, {
+    method: 'POST',
+    body: { name: subcatName, price, time, description }
+  });
+};
+
+const getSearchSuggestions = async function (query) {
+  return request(`/categories/suggestions?query=${encodeURIComponent(query)}`);
+};
+
+const getBookings = async function () {
+  return request('/bookings');
+};
+
+const getProvidersForService = async function (subcatId) {
+  return request(`/listings/providers?subcatId=${subcatId}`);
+};
+
+const createBooking = async function (category, subcategoryId, providerId, price, date, time, address) {
+  return request('/bookings', {
+    method: 'POST',
+    body: { category, subcategoryId, providerId, price, date, time, address }
+  });
+};
+
+const getProviderBookedSlots = async function (providerId, date) {
+  return request(`/bookings/slots?providerId=${providerId}&date=${date}`);
+};
+
+const updateBookingStatus = async function (bookingId, status, enteredOtp = '') {
+  return request(`/bookings/${bookingId}/status`, {
+    method: 'PATCH',
+    body: { status, enteredOtp }
+  });
+};
+
+const rateBooking = async function (bookingId, rating, comment) {
+  return request(`/bookings/${bookingId}/rate`, {
+    method: 'POST',
+    body: { rating, comment }
+  });
+};
+
+const getAdminStats = async function () {
+  return request('/admin/stats');
+};
+
+const toggleProviderApproval = async function (providerId) {
+  return request(`/admin/providers/${providerId}/approve`, {
+    method: 'PATCH'
+  });
+};
+
+const toggleProviderStatus = async function (providerId) {
+  const res = await request('/listings/me/status', {
+    method: 'PATCH'
+  });
+  // Update stored session user's online status
+  const user = getCurrentUser();
+  if (user && user.id === providerId) {
+    user.online = res.online;
+    sessionStorage.setItem('ua_current_user', JSON.stringify(user));
+  }
+  return res;
+};
+
+const toggleUserBlock = async function (userId) {
+  return request(`/admin/users/${userId}/block`, {
+    method: 'PATCH'
+  });
+};
+
+const updateProviderServices = async function (providerId, services) {
+  const res = await request('/listings/me/catalog', {
+    method: 'PATCH',
+    body: { services }
+  });
+  // Update stored session user's listings/services catalog
+  const user = getCurrentUser();
+  if (user && user.id === providerId) {
+    user.services = res.listings ? res.listings.map(l => ({ id: l.subcat_id, price: Number(l.price) })) : [];
+    sessionStorage.setItem('ua_current_user', JSON.stringify(user));
+  }
+  return user;
+};
+
+const getUsersList = async function () {
+  return request('/admin/users');
+};
+
+const createAdmin = async function (email, name, password) {
+  return request('/admin/create-admin', {
+    method: 'POST',
+    body: { email, name, password }
+  });
+};
+
+// Prefetch categories to populate cache for synchronous callers
+getCategories().catch(() => { });
 
 
 // ─── Button Loading Utility ────────────────────────────────────────────────
@@ -224,7 +226,7 @@ window.db = new APIDatabase();
  * @param {HTMLButtonElement} btn
  * @param {string} [loadingText]  - Optional label to show next to spinner
  */
-window.setButtonLoading = function (btn, loadingText = '') {
+const setButtonLoading = function (btn, loadingText = '') {
   if (!btn) return;
   // Wrap existing HTML in a label span (idempotent)
   if (!btn.querySelector('.btn-label')) {
@@ -249,7 +251,7 @@ window.setButtonLoading = function (btn, loadingText = '') {
  * Restore a button to its normal interactive state.
  * @param {HTMLButtonElement} btn
  */
-window.resetButton = function (btn) {
+const resetButton = function (btn) {
   if (!btn) return;
   btn.classList.remove('btn-loading');
   btn.disabled = false;
@@ -267,8 +269,8 @@ window.resetButton = function (btn) {
 
 
 // --- LAYOUT RENDERING UTILITY (UrbanClap Styling) ---
-window.renderLayout = function (activeLink = '') {
-  const currentUser = window.db.getCurrentUser();
+const renderLayout = function (activeLink = '') {
+  const currentUser = getCurrentUser();
   const isLoggedIn = !!currentUser;
 
   // 1. DYNAMIC HEADER
@@ -304,7 +306,7 @@ window.renderLayout = function (activeLink = '') {
                   <h4 style="margin-bottom: 5px;">${currentUser.name}</h4>
                   <p style="text-transform: capitalize; margin-bottom: 12px; font-size:12px;">Role: ${currentUser.role}</p>
                   <button class="btn btn-outline btn-sm btn-primary" onclick="openProfileEditModal()" style="width: 100%; margin-bottom: 8px;">Edit Profile</button>
-                  <button class="btn btn-outline btn-sm btn-danger" onclick="window.db.logout()" style="width: 100%;">Logout</button>
+                  <button class="btn btn-outline btn-sm btn-danger" onclick="logout()" style="width: 100%;">Logout</button>
                 </div>
               </div>
               `
@@ -367,7 +369,7 @@ window.renderLayout = function (activeLink = '') {
           <button class="btn btn-outline btn-primary" onclick="openProfileEditModal()" style="width:100%;justify-content:center;margin-bottom:8px;margin-top:10px;">
             <i class="fas fa-user-edit"></i> Edit Profile
           </button>
-          <button class="btn btn-outline btn-danger" onclick="window.db.logout()" style="width:100%;justify-content:center;">
+          <button class="btn btn-outline btn-danger" onclick="logout()" style="width:100%;justify-content:center;">
             <i class="fas fa-sign-out-alt"></i> Log Out
           </button>
         ` : `
@@ -429,7 +431,7 @@ window.renderLayout = function (activeLink = '') {
   });
 
   // Toggle profile dropdown
-  window.toggleUserDropdown = function () {
+  const toggleUserDropdown = function () {
     const dropdown = document.getElementById('user-dropdown');
     if (dropdown) {
       const isVisible = dropdown.style.display === 'block';
@@ -509,15 +511,20 @@ window.renderLayout = function (activeLink = '') {
     document.head.appendChild(fa);
   }
 
-  // Profile modal is set up independently (see window.setupProfileModal below)
-  window.setupProfileModal();
+  // Profile modal is set up independently (see setupProfileModal below)
+  setupProfileModal();
 };
 
 // ─── Edit Profile Modal — runs on EVERY page automatically ───────────────────
 // Defined outside renderLayout so dashboard pages (customer/provider) that
 // do NOT call renderLayout can still use the Edit Profile button.
-window.setupProfileModal = function () {
-  const currentUser = window.db.getCurrentUser();
+// Top-level stubs — wired up inside setupProfileModal once the modal DOM exists.
+// HTML onclick="openProfileEditModal()" resolves these without needing window.
+let openProfileEditModal  = () => {};
+let closeProfileEditModal = () => {};
+
+const setupProfileModal = function () {
+  const currentUser = getCurrentUser();
   const isLoggedIn  = !!currentUser;
 
   // Inject Edit Profile Modal HTML (if logged in)
@@ -527,7 +534,7 @@ window.setupProfileModal = function () {
         <div class="modal-container profile-edit-container">
           <div class="modal-header">
             <h3 class="modal-title">Edit Your Profile</h3>
-            <button class="modal-close profile-modal-close" onclick="window.closeProfileEditModal()" aria-label="Close">&times;</button>
+            <button class="modal-close profile-modal-close" onclick="closeProfileEditModal()" aria-label="Close">&times;</button>
           </div>
           <div class="modal-body">
             <form id="profile-edit-form">
@@ -571,32 +578,32 @@ window.setupProfileModal = function () {
       window.scrollTo(0, _scrollY);
     }
 
-    // Modal control functions
-    window.openProfileEditModal = function () {
-      const user = window.db.getCurrentUser();
+    // Wire the top-level stubs to the real closure implementations
+    openProfileEditModal = function () {
+      const user = getCurrentUser();
       if (!user) return;
-      document.getElementById('prof-name').value = user.name;
-      document.getElementById('prof-email').value = user.email;
+      document.getElementById('prof-name').value    = user.name;
+      document.getElementById('prof-email').value   = user.email;
       document.getElementById('prof-password').value = '';
 
       const form = document.getElementById('profile-edit-form');
-      if (window.clearFormErrors) window.clearFormErrors(form);
+      if (clearFormErrors) clearFormErrors(form);
 
       // Close desktop dropdown
       const dropdown = document.getElementById('user-dropdown');
       if (dropdown) dropdown.style.display = 'none';
 
       // Close mobile nav drawer (index / providers page)
-      const mobileDrawer = document.getElementById('nav-mobile-drawer');
+      const mobileDrawer  = document.getElementById('nav-mobile-drawer');
       const mobileOverlay = document.getElementById('nav-mobile-overlay');
       if (mobileDrawer)  mobileDrawer.classList.remove('open');
       if (mobileOverlay) mobileOverlay.classList.remove('active');
 
       // Close dashboard sidebar (customer / provider dashboard)
-      const sidebar = document.querySelector('.sidebar');
+      const sidebar        = document.querySelector('.sidebar');
       const sidebarBackdrop = document.getElementById('sidebar-backdrop');
-      if (sidebar)         sidebar.classList.remove('open');
-      if (sidebarBackdrop) sidebarBackdrop.classList.remove('active');
+      if (sidebar)          sidebar.classList.remove('open');
+      if (sidebarBackdrop)  sidebarBackdrop.classList.remove('active');
 
       // Lock scroll BEFORE the modal appears so the page doesn't jump
       lockBodyScroll();
@@ -607,14 +614,14 @@ window.setupProfileModal = function () {
       }, 80);
     };
 
-    window.closeProfileEditModal = function () {
+    closeProfileEditModal = function () {
       document.getElementById('profile-edit-modal').classList.remove('active');
       unlockBodyScroll();
     };
 
     // Close on backdrop click (tap outside the sheet)
     document.getElementById('profile-edit-modal').addEventListener('click', function (e) {
-      if (e.target === this) window.closeProfileEditModal();
+      if (e.target === this) closeProfileEditModal();
     });
 
 
@@ -622,26 +629,35 @@ window.setupProfileModal = function () {
     const profForm = document.getElementById('profile-edit-form');
     profForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      if (window.clearFormErrors) window.clearFormErrors(profForm);
+      if (clearFormErrors) clearFormErrors(profForm);
 
       const nameVal = document.getElementById('prof-name').value.trim();
       const emailVal = document.getElementById('prof-email').value.trim();
       const passVal = document.getElementById('prof-password').value;
 
       let hasError = false;
-      if (!nameVal) { window.setFieldError(document.getElementById('prof-name'), 'Name is required'); hasError = true; }
-      if (!emailVal) { window.setFieldError(document.getElementById('prof-email'), 'Email is required'); hasError = true; }
-      if (passVal && passVal.length < 6) { window.setFieldError(document.getElementById('prof-password'), 'Password must be at least 6 characters'); hasError = true; }
+      const nameEl  = document.getElementById('prof-name');
+      const emailEl = document.getElementById('prof-email');
+      const passEl  = document.getElementById('prof-password');
+
+      if (!nameVal)  { setFieldError(nameEl,  'Name is required.');                            hasError = true; }
+      if (!emailVal) { setFieldError(emailEl, 'Email address is required.');                   hasError = true; }
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
+        setFieldError(emailEl, 'Please enter a valid email address.');                          hasError = true;
+      }
+      if (passVal && passVal.length < 8) {
+        setFieldError(passEl, 'Password must be at least 8 characters.');                       hasError = true;
+      }
 
       if (hasError) return;
 
       const saveBtn = profForm.querySelector('[type="submit"]');
-      window.setButtonLoading(saveBtn, 'Saving…');
+      setButtonLoading(saveBtn, 'Saving…');
 
       try {
-        const updated = await window.db.updateProfile(nameVal, emailVal, passVal || null);
-        window.toastSuccess('Profile updated successfully!', 'Profile Saved');
-        window.closeProfileEditModal();
+        const updated = await updateProfile(nameVal, emailVal, passVal || null);
+        toastSuccess('Profile updated successfully!', 'Profile Saved');
+        closeProfileEditModal();
 
         // Dynamically update active elements on current page
         const sidebarName = document.getElementById('sidebar-name');
@@ -660,18 +676,33 @@ window.setupProfileModal = function () {
         if (avatarEl) avatarEl.innerText = updated.name.charAt(0).toUpperCase();
 
         const headerAvatars = document.querySelectorAll('.user-avatar');
-        headerAvatars.forEach(av => {
-          av.innerText = updated.name.charAt(0).toUpperCase();
-        });
+        headerAvatars.forEach(av => { av.innerText = updated.name.charAt(0).toUpperCase(); });
+
       } catch (err) {
-        window.toastError(err.message, 'Update Failed');
+        // Map backend field errors onto form inputs
+        if (err.messages && err.messages.length > 0) {
+          let hasFieldError = false;
+          err.messages.forEach(msg => {
+            const lowerMsg = msg.toLowerCase();
+            if (lowerMsg.includes('email')) {
+              setFieldError(emailEl, msg); hasFieldError = true;
+            } else if (lowerMsg.includes('password')) {
+              setFieldError(passEl, msg);  hasFieldError = true;
+            } else if (lowerMsg.includes('name')) {
+              setFieldError(nameEl, msg);  hasFieldError = true;
+            }
+          });
+          if (!hasFieldError) toastError(err.message, 'Update Failed');
+        } else {
+          toastError(err.message, 'Update Failed');
+        }
       } finally {
-        window.resetButton(saveBtn);
+        resetButton(saveBtn);
       }
     });
 
     profForm.addEventListener('input', (e) => {
-      if (e.target.classList.contains('error')) window.setFieldError(e.target, null);
+      if (e.target.classList.contains('error')) setFieldError(e.target, null);
     });
   }
 };
@@ -680,5 +711,5 @@ window.setupProfileModal = function () {
 document.addEventListener('DOMContentLoaded', () => {
   // Small delay to allow page-specific JS (customer.js, provider.js etc.)
   // to run first so getCurrentUser() is populated
-  setTimeout(window.setupProfileModal, 0);
+  setTimeout(setupProfileModal, 0);
 });

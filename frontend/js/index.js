@@ -1,124 +1,25 @@
 // Home Page script logic
-document.addEventListener('DOMContentLoaded', async () => {
-  // Render navbar & footer
-  window.renderLayout('home');
 
-  const searchInput   = document.getElementById('search-input');
-  const suggestionsBox = document.getElementById('suggestions-box');
-  const searchBtn     = document.getElementById('search-btn');
+// Modal helpers (top-level so inline onclick="..." in HTML can call them)
+const openModal = function (modalId) {
+  const el = document.getElementById(modalId);
+  if (el) el.classList.add('active');
+};
 
-  // ── Custom Date Picker setup ──────────────────────────────
-  const today   = new Date();
-  const maxDate = new Date(today);
-  maxDate.setMonth(maxDate.getMonth() + 24);
+const closeModal = function (modalId) {
+  const el = document.getElementById(modalId);
+  if (el) el.classList.remove('active');
+};
 
-  let bookingDatePicker = null; // will be created when booking modal opens
-
-  // ── Load and render Categories ────────────────────────────
-  const categories = await window.db.getCategories();
-  renderCategories(categories);
-
-  // ── Search input: auto-suggestions ───────────────────────
-  searchInput.addEventListener('input', async (e) => {
-    const query = e.target.value;
-    if (query.trim().length === 0) {
-      suggestionsBox.classList.remove('active');
-      suggestionsBox.innerHTML = '';
-      return;
-    }
-    const suggestions = await window.db.getSearchSuggestions(query);
-    renderSuggestions(suggestions);
-  });
-
-  // Close suggestions when clicked outside
-  document.addEventListener('click', (e) => {
-    if (!searchInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
-      suggestionsBox.classList.remove('active');
-    }
-  });
-
-  // Search button handler
-  searchBtn.addEventListener('click', async () => {
-    const query = searchInput.value.trim();
-    if (!query) return;
-    const suggestions = await window.db.getSearchSuggestions(query);
-    if (suggestions.length > 0) {
-      const first = suggestions[0];
-      suggestionsBox.classList.remove('active');
-      if (first.type === 'category') {
-        openSubcategoriesModal(first.id);
-      } else {
-        triggerBooking(first.categoryId, first.id, first.title, first.price);
-      }
-    } else {
-      window.toastWarning(
-        `No services match "<strong>${query}</strong>". Try "plumbing", "haircut", or "AC service".`,
-        'No Results Found'
-      );
-    }
-  });
-
-  // Booking form is now handled on the dedicated providers page
-
-});
-
-// ── Render Categories Grid ───────────────────────────────────
-function renderCategories(categories) {
-  const grid = document.getElementById('category-grid');
-  grid.innerHTML = '';
-  Object.values(categories).forEach(cat => {
-    const card = document.createElement('div');
-    card.className = 'category-card';
-    card.onclick = () => openSubcategoriesModal(cat.id);
-    card.innerHTML = `
-      <div class="category-icon">
-        <i class="fas ${cat.icon}"></i>
-      </div>
-      <h3>${cat.name}</h3>
-      <p>${cat.description}</p>
-    `;
-    grid.appendChild(card);
-  });
-}
-
-// ── Render Autocomplete Suggestions ─────────────────────────
-function renderSuggestions(suggestions) {
-  const box = document.getElementById('suggestions-box');
-  box.innerHTML = '';
-
-  if (suggestions.length === 0) {
-    box.classList.remove('active');
-    return;
-  }
-
-  suggestions.forEach(item => {
-    const div = document.createElement('div');
-    div.className = 'suggestion-item';
-    div.innerHTML = `
-      <div class="suggestion-info">
-        <span class="suggestion-title">${item.title}</span>
-        <span class="suggestion-category">${item.categoryName}</span>
-      </div>
-      <span class="suggestion-badge">${item.badge}</span>
-    `;
-    div.addEventListener('click', () => {
-      box.classList.remove('active');
-      document.getElementById('search-input').value = item.title;
-      if (item.type === 'category') {
-        openSubcategoriesModal(item.id);
-      } else {
-        triggerBooking(item.categoryId, item.id, item.title, item.price);
-      }
-    });
-    box.appendChild(div);
-  });
-
-  box.classList.add('active');
-}
+// Trigger: close subcat → redirect to providers listing page
+const triggerBooking = function (categoryId, subcatId, subcatName) {
+  closeModal('subcategories-modal');
+  window.location.href = `providers.html?categoryId=${categoryId}&subcatId=${subcatId}&subcatName=${encodeURIComponent(subcatName)}`;
+};
 
 // ── Open Category Details Modal ──────────────────────────────
 async function openSubcategoriesModal(categoryId) {
-  const categories = await window.db.getCategories();
+  const categories = await getCategories();
   const category   = categories[categoryId];
   if (!category) return;
 
@@ -139,11 +40,10 @@ async function openSubcategoriesModal(categoryId) {
           <i class="far fa-clock"></i> Est. Time: ${sub.time}
         </span>
       </div>
-      <div class="subcat-price-book">
-        <span class="subcat-price">₹${sub.price}</span>
-        <button class="btn btn-primary btn-sm"
-          onclick="triggerBooking('${category.id}','${sub.id}','${sub.name.replace(/'/g, "\\'")}',${sub.price})">
-          Book Now
+      <div class="subcat-item-action">
+        <button class="btn btn-outline btn-sm btn-primary"
+          onclick="triggerBooking('${category.id}','${sub.id}','${sub.name.replace(/'/g, "\\'")}')">
+          Select Service
         </button>
       </div>
     `;
@@ -153,20 +53,109 @@ async function openSubcategoriesModal(categoryId) {
   openModal('subcategories-modal');
 }
 
-// Trigger: close subcat → load & select provider
-// Trigger: close subcat → redirect to providers listing page
-window.triggerBooking = function (categoryId, subcatId, subcatName) {
-  closeModal('subcategories-modal');
-  window.location.href = `providers.html?categoryId=${categoryId}&subcatId=${subcatId}&subcatName=${encodeURIComponent(subcatName)}`;
-};
+document.addEventListener('DOMContentLoaded', async () => {
+  // Render navbar & footer
+  renderLayout('home');
 
-// Modal helpers
-window.openModal = function (modalId) {
-  const el = document.getElementById(modalId);
-  if (el) el.classList.add('active');
-};
-window.closeModal = function (modalId) {
-  const el = document.getElementById(modalId);
-  if (el) el.classList.remove('active');
-};
+  const searchInput    = document.getElementById('search-input');
+  const suggestionsBox = document.getElementById('suggestions-box');
+  const searchBtn      = document.getElementById('search-btn');
 
+  // ── Load and render Categories ────────────────────────────
+  const categories = await getCategories();
+  renderCategories(categories);
+
+  // ── Search input: auto-suggestions ───────────────────────
+  searchInput.addEventListener('input', async (e) => {
+    const query = e.target.value;
+    if (query.trim().length === 0) {
+      suggestionsBox.classList.remove('active');
+      suggestionsBox.innerHTML = '';
+      return;
+    }
+    const suggestions = await getSearchSuggestions(query);
+    renderSuggestions(suggestions);
+  });
+
+  // Close suggestions when clicked outside
+  document.addEventListener('click', (e) => {
+    if (!searchInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
+      suggestionsBox.classList.remove('active');
+    }
+  });
+
+  // Search button handler
+  searchBtn.addEventListener('click', async () => {
+    const query = searchInput.value.trim();
+    if (!query) return;
+    const suggestions = await getSearchSuggestions(query);
+    if (suggestions.length > 0) {
+      const first = suggestions[0];
+      suggestionsBox.classList.remove('active');
+      if (first.type === 'category') {
+        openSubcategoriesModal(first.id);
+      } else {
+        triggerBooking(first.categoryId, first.id, first.title);
+      }
+    } else {
+      toastWarning(
+        `No services match "<strong>${query}</strong>". Try "plumbing", "haircut", or "AC service".`,
+        'No Results Found'
+      );
+    }
+  });
+
+  // Render categories on landing grid
+  function renderCategories(categoriesList) {
+    const grid = document.getElementById('categories-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    Object.values(categoriesList).forEach(cat => {
+      const card = document.createElement('div');
+      card.className = 'category-card';
+      card.innerHTML = `
+        <div class="category-icon-wrapper">
+          <i class="fas ${cat.icon}"></i>
+        </div>
+        <h3>${cat.name}</h3>
+        <p>${cat.description}</p>
+        <span class="category-link">Explore services <i class="fas fa-chevron-right"></i></span>
+      `;
+      card.addEventListener('click', () => openSubcategoriesModal(cat.id));
+      grid.appendChild(card);
+    });
+  }
+
+  // Render suggestion results list
+  function renderSuggestions(list) {
+    const box = suggestionsBox;
+    box.innerHTML = '';
+
+    if (list.length === 0) {
+      box.classList.remove('active');
+      return;
+    }
+
+    box.classList.add('active');
+    list.forEach(item => {
+      const el = document.createElement('div');
+      el.className = 'suggestion-item';
+      el.innerHTML = `
+        <i class="fas ${item.type === 'category' ? 'fa-th-large' : 'fa-tools'}"></i>
+        <span>${item.title}</span>
+        ${item.type === 'subcategory' ? `<small>in ${item.categoryName}</small>` : ''}
+      `;
+      el.addEventListener('click', () => {
+        box.classList.remove('active');
+        searchInput.value = item.title;
+        if (item.type === 'category') {
+          openSubcategoriesModal(item.id);
+        } else {
+          triggerBooking(item.categoryId, item.id, item.title);
+        }
+      });
+      box.appendChild(el);
+    });
+  }
+});
