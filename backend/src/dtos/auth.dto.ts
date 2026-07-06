@@ -7,6 +7,8 @@ import {
   IsOptional,
   ValidateNested,
   IsNumber,
+  isStrongPassword,
+  IsStrongPassword
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -28,7 +30,10 @@ export class RegisterDto {
   name: string;
 
   @IsString()
-  @MinLength(6, { message: 'Password must be at least 6 characters' })
+  @MinLength(8, { message: 'Password must be at least 8 characters' })
+  @IsStrongPassword({ minLowercase: 1, minUppercase: 1, minNumbers: 1, minSymbols: 1 }, {
+    message: 'Password must contain 1 lower 1 upper case and 1 symbol'
+  })
   password: string;
 
   @IsEnum(['provider', 'consumer'], {
